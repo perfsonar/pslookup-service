@@ -31,13 +31,16 @@
                 },
                 "processor_speed": {
                     "description": "processors speed in Hz",
-                    "type": "number"
+                    "type": "array",
+                    "items": {
+                            "type": "string"
+                        }
                 },
                 "os_version": {
                     "description": "OS version",
                     "type": "string"
                 },
-                "productname": {
+                "product_name": {
                     "description": "host product name",
                     "type": "string"
                 },
@@ -48,12 +51,20 @@
                     "description": "type of perfsonar installation",
                     "type": "string"
                 },
-                "net_tcp_autotunemaxbuffer_send": {
-                    "description": "TCP autotune max buffer in bytes",
+                "net_core_rmem_max": {
+                    "description": "Core - max recv buffer in bytes",
                     "type": "number"
                 },
-                "net_tcp_maxbuffer_recv": {
-                    "description": "TCP  max buffer in bytes",
+                "net_core_rmem_default": {
+                    "description": "Core - default recv buffer in bytes",
+                    "type": "number"
+                },
+                "net_core_wmem_max": {
+                    "description": "Core - max Send buffer in bytes",
+                    "type": "number"
+                },
+                "net_core_wmem_default": {
+                    "description": "Core - default Send buffer in bytes",
                     "type": "number"
                 },
                 "manufacturer": {
@@ -64,17 +75,27 @@
                     "description": "CPU id",
                     "type": "string"
                 },
-                "processor_count": {
-                    "description": "number of processors",
-                    "type": "integer"
-                },
                 "perfsonar_version": {
                     "description": "bundle version",
                     "type": "string"
                 },
-                "net_tcp_congestionalgorithm": {
+                "net_ipv4_tcp_congestion_control": {
                     "description": "TCP congestion control algorithm",
                     "type": "string"
+                },
+                "net_ipv4_tcp_available_congestion_control": {
+                    "description": "Available TCP congestion control algorithms",
+                    "type": "array",
+                    "items":{
+                        "type": "string"
+                    }
+                },
+                "net_ipv4_tcp_allowed_congestion_control": {
+                    "description": "Allowed TCP congestion control algorithms",
+                    "type": "array",
+                    "items":{
+                        "type": "string"
+                    }
                 },
                 "os_architecture": {
                     "description": "OS architecture",
@@ -100,34 +121,85 @@
                         ]
                     }
                 },
-                "net_tcp_autotunemaxbuffer_recv": {
-                    "description": "TCP autotune max buffer in bytes",
+                "net_ipv4_tcp_rmem_default": {
+                    "description": "TCP default recv. buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_rmem_max": {
+                    "description": "TCP max recv. buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_rmem_min": {
+                    "description": "TCP min recv. buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_wmem_default": {
+                    "description": "TCP default Send buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_wmem_max": {
+                    "description": "TCP max Send buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_wmem_min": {
+                    "description": "TCP min Send buffer in bytes",
+                    "type": "number"
+                },
+                "net_ipv4_tcp_no_metrics_save": {
+                    "description": "Flag - not cache metrics on closing connections",
+                    "type": "boolean"
+                },
+                "net_ipv4_tcp_mtu_probing": {
+                    "description": "MTU discovery control",
+                    "type": "integer"
+                },
+                "net_core_default_qdisc": {
+                    "description": "default queuing discipline",
+                    "type": "string"
+                },
+                "net_ipv4_conf_all_arp_ignore": {
+                    "description": "ARP request response mode",
+                    "type": "integer"
+                },
+                "net_ipv4_conf_all_arp_announce": {
+                    "description": "ARP request restriction levels",
+                    "type": "integer"
+                },
+                "net_ipv4_conf_default_arp_filter": {
+                    "description": "default ARP filter",
+                    "type": "boolean"
+                },
+                "net_ipv4_conf_all_arp_filter": {
+                    "description": "All ARP filter",
+                    "type": "boolean"
+                },
+                "net_core_netdev_max_backlog": {
+                    "description": "Max size of the recv. queue",
                     "type": "number"
                 },
                 "group_domains": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "memory_bytes": {
                     "description": "memory in bytes",
-                    "type": "integer"
-                },
-                "net_tcp_maxbuffer_send": {
-                    "description": "TCP max buffer in bytes",
                     "type": "number"
                 },
                 "location": {
                     "type": "object",
                     "properties": {
-                        "state": {
-                            "description": "State",
+                        "state_province_region": {
+                            "description": "State/ province/ region",
                             "type": "string"
                         },
                         "city": {
                             "description": "city",
                             "type": "string"
                         },
-                        "code": {
-                            "description": "zipcode",
+                        "postal_code": {
+                            "description": "zipcode/ postal code",
                             "type": "string"
                         },
                         "country": {
@@ -273,7 +345,7 @@
                     "type": "string"
                 }
             },
-            "required": ["type"],
+            "required": ["archiver_type"],
             "allOf": [
                 {
                     "$ref": "#/$definitions/service"

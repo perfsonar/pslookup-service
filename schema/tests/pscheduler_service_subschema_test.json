@@ -6,8 +6,7 @@
     "tests": [
         "throughput"
     ],
-    "name": "pscheduler",
-    "locators": [
+    "urls": [
         "https://127.0.0.1/pscheduler"
     ]
 }

@@ -1,0 +1,68 @@
+{
+    "host": {
+        "vm": null,
+        "administrators": [
+            {
+                "emails": [null],
+                "meta": null
+            }
+        ],
+        "processor_core_count": null,
+        "os_kernel": null,
+        "os_name": null,
+        "processor_speed": null,
+        "os_version": null,
+        "product_name": null,
+        "client_uuid": null,
+        "perfsonar_bundle": null,
+        "net_core_rmem_max": null,
+        "net_core_rmem_default": null,
+        "net_core_wmem_max": null,
+        "net_core_wmem_default": null,
+        "manufacturer": null,
+        "processor_id": null,
+        "perfsonar_version": null,
+        "net_ipv4_tcp_congestion_control": null,
+        "net_ipv4_tcp_available_congestion_control": null,
+        "net_ipv4_tcp_allowed_congestion_control": null,
+        "os_architecture": null,
+        "name": null,
+        "net_ipv4_tcp_rmem_default": null,
+        "net_ipv4_tcp_rmem_max": null,
+        "net_ipv4_tcp_rmem_min": null,
+        "net_ipv4_tcp_wmem_default": null,
+        "net_ipv4_tcp_wmem_max": null,
+        "net_ipv4_tcp_wmem_min": null,
+        "net_ipv4_tcp_no_metrics_save": null,
+        "net_ipv4_tcp_mtu_probing": null,
+        "net_core_default_qdisc": null,
+        "net_ipv4_conf_all_arp_ignore": null,
+        "net_ipv4_conf_all_arp_announce": null,
+        "net_ipv4_conf_default_arp_filter": null,
+        "net_ipv4_conf_all_arp_filter": null,
+        "net_core_netdev_max_backlog": null,
+        "group_domains": [null],
+        "memory_bytes": null,
+        "location": null,
+        "group_communities": [null],
+        "role": null,
+        "access_policy": null,
+        "access_notes": null,
+        "pscheduler_service": {
+            "urls": [null],
+            "version": null,
+            "meta": null,
+            "tools": [null],
+            "tests": [null]
+        },
+        "archive_service": {
+            "urls": [null],
+            "version": null,
+            "meta": null,
+            "write_urls": [null],
+            "archiver_type": null,
+            "write_type": null
+        },
+        "meta": null
+    }
+}
