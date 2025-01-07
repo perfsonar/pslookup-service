@@ -1,0 +1,155 @@
+import argparse
+import pyinotify
+import logging
+from configparser import ConfigParser
+import sys
+import time
+from lookup_service.lookup_service import register_record
+import os
+
+
+##########
+# set the process name
+############################# not straight forward in python?
+
+##########
+# Parse command-line options
+# Instantiate the parser
+parser = argparse.ArgumentParser(description='lookupservice_registration_agent')
+parser.add_argument('--config', dest='CONFIG_FILE', action='store', required=False, default='ls-config/ls-registration.conf', help='configuration file')
+parser.add_argument('--logger', dest='LOGGER_CONF', action='store', help='Logger Config', required=False)
+parser.add_argument('--disable-inotify', dest='DISABLE_INOTIFY', action='store_true', help='disable inotify for file change detection.')
+parser.add_argument('--verbose', dest='DEBUGFLAG', action='store_true', help='Add additional debug output')
+############
+#parser.add_argument('--help', dest='HELP', action='store', help='HELP')
+
+args = parser.parse_args()
+
+##########
+# Create logger
+if not args.LOGGER_CONF:
+
+    output_level = logging.INFO
+    if args.DEBUGFLAG:
+        output_level = logging.DEBUG
+    
+    logging.basicConfig(level=output_level)
+    logger = logging.getLogger('lookupservice_registration_agent')
+
+else:
+    logging.config.fileConfig(args.LOGGER_CONF)
+    logger = logging.getLogger("lookupservice_registration_agent")
+
+#Get the paths of config and default files
+#Read the config file
+def get_configs():
+    conf = ConfigParser()
+
+    try:
+        conf.read(args.CONFIG_FILE)
+    except Exception as e:
+        logger.error('Error reading the registration config: {}'.format(e))
+        sys.exit('Error reading the registration config: {}'.format(e))
+
+    try:
+        default_host_path = conf.get('auto_discover', 'host_overwite_conf_path')
+    except Exception as e:
+        logger.info('Error getting the default host path: {}'.format(e))
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/host.json'))
+        default_host_path = '/etc/perfsonar/ls-config/ls-record-conf/host.json'
+
+    try:
+        default_interface_path = conf.get('auto_discover', 'interface_overwite_conf_path')
+    except Exception as e:
+        logger.info('Error getting the default host path: {}'.format(e))
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/interfaces.json'))
+        default_interface_path = '/etc/perfsonar/ls-config/ls-record-conf/interfaces.json'
+    
+    return conf, default_host_path, default_interface_path
+
+##########
+# Setup Inotify2 on config files and directories
+# NOTE: Don't watch requesting agent file because it may not exist
+# NOTE: These do not work in well in container or VM shared directories. Use --disable-inotify
+notifier = None
+
+conf, default_host_path, default_interface_path = get_configs()
+
+if not args.DISABLE_INOTIFY:
+    watcher = pyinotify.WatchManager()
+    watchMask = pyinotify.IN_MODIFY
+    watcher.add_watch(args.CONFIG_FILE, watchMask) ############verify if file is registered
+    logger.debug('Watching config file {}.'.format(args.CONFIG_FILE))
+
+    watchMask2 = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
+    try:
+        watcher.add_watch(default_host_path, watchMask2)
+        logger.debug('Watching default_host_path {}.'.format(default_host_path))
+    except Exception as e:
+        logger.debug('Watching default_host_path failed with error {}.'.format(e))
+    try:
+        watcher.add_watch(default_interface_path, watchMask2)
+        logger.debug('Watching default_interface_path {}.'.format(default_interface_path))
+    except Exception as e:
+        logger.debug('Watching default_interface_path failed with error {}.'.format(e))
+
+    #create notifier
+    notifier = pyinotify.Notifier(watcher, timeout=1)
+
+##
+# Start main program loop
+logger.info('Starting Lookup Service')
+
+# interval to register the record
+try:
+    register_interval = int(conf.get('auto_discover', 'register_interval'))
+except Exception as e:
+    logger.info('Error getting the register_interval: {}'.format(e))
+    logger.info('Default the register_interval: {}'.format('3600'))
+    register_interval = 3600
+
+# interval to check for file changes
+try:
+    check_interval = int(conf.get('auto_discover', 'check_interval'))
+except Exception as e:
+    logger.info('Error getting the check_interval: {}'.format(e))
+    logger.info('Default the check_interval: {}'.format('3600'))
+    check_interval = 3600
+
+while(1):
+    ###########
+    #Initialize start
+    start = time.time()
+
+    #############
+    logger.info("Registerting record...")
+    register_record(conf, default_host_path, default_interface_path)
+    logger.info("Registration agent finished running.")
+    ###########
+    # Sleep until its time to look for file updates or time to refesh
+    end = time.time()
+    until_next_refresh = register_interval - (end - start)
+    until_next_file_check = check_interval
+    if until_next_refresh < until_next_file_check:
+        sleep_time = until_next_refresh
+    else:
+        sleep_time = until_next_file_check
+    
+    logger.info("Time until next record refresh is {} seconds".format(until_next_refresh))
+
+    start = end
+    while until_next_refresh > 0:
+        time.sleep(sleep_time)
+
+        if notifier and notifier.check_events():
+            logger.info("Configuration file changes detected, refreshing records.")
+            notifier.read_events()
+            notifier.process_events()
+            break
+        else:
+            end = time.time()
+            until_next_refresh -= end-start
+            start = end
+
+#Exit the whole process
+os._exit()

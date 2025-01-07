@@ -43,7 +43,15 @@
         "net_core_netdev_max_backlog": null,
         "group_domains": [null],
         "memory_bytes": null,
-        "location": null,
+        "location": {
+            "state_province_region": null,
+            "city": null,
+            "postal_code": null,
+            "country": null,
+            "latitude": null,
+            "longitude": null,
+            "sitename": null
+        },
         "group_communities": [null],
         "role": null,
         "access_policy": null,

@@ -1,18 +1,16 @@
 import json
 import urllib.request
 import re
-import collections
 import copy
-from validate_record import RecordValidation
+from .validate_record import RecordValidation
 import uuid
 import random
 import os
 import requests
 import logging
-from configparser import ConfigParser
 import sys
 import ssl
-import time
+import json
 
 #Set logger
 logger = logging.getLogger(__name__)
@@ -22,39 +20,31 @@ logging.basicConfig(level=logging.DEBUG,
                         logging.StreamHandler()
                     ])
 
-#Read the config file
-conf = ConfigParser()
-
-try:
-    conf.read('ls-config/ls-registration.conf')
-except Exception as e:
-    logger.error('Error reading the registration config: {}'.format(e))
-    sys.exit('Error reading the registration config: {}'.format(e))
-
-# Get the registration frequency
-def get_check_interval():
+# Read default host
+def get_default_host_details(default_host_path):
+    default_host = {}
     try:
-        check_interval = int(conf.get('auto_discover', 'check_interval'))
+        with open(default_host_path) as host_info:
+            default_host = json.load(host_info)
     except Exception as e:
-        logger.info('check_interval not read: {}'.format(e))
-        logger.info('Defaulting to 3600s')
-        check_interval = 3600
+        logger.info('Error reading the default host Info: {}'.format(e))
+    return default_host
 
-    if check_interval < 3600 or check_interval > 86400:
-        logger.info('check_interval should be between 3600 and 86400')
-        logger.info('Defaulting to 3600s')
-        check_interval = 3600
-    
-    return check_interval
+# Read default interface
+def get_default_interface_details(default_interface_path):
+    default_interface = {}
+    try:
+        with open(default_interface_path) as interface_info:
+            default_interface = json.load(interface_info)
+    except Exception as e:
+        logger.info('Error reading the default interface Info: {}'.format(e))
+    return default_interface
 
-check_interval = get_check_interval()
-#If check interval is changed in the config.
-check_interval_updated = get_check_interval()
 
-while check_interval <= check_interval_updated:
-    
-    # For the new turn
-    check_interval = get_check_interval()
+def register_record(conf, default_host_path, default_interface_path):
+
+    default_host = get_default_host_details(default_host_path)
+    default_interface = get_default_interface_details(default_interface_path)
 
     #Node_metrics url
     try:
@@ -164,20 +154,41 @@ while check_interval <= check_interval_updated:
                         logger.info('mac not found for address line {}, Ignoring'.format(address_line))
                         pass
 
+    # pscheduler_tests and meta
+    pscheduler_tests = default_interface.get('pscheduler_tests')
+    if pscheduler_tests:
+        host['pscheduler_tests'] = pscheduler_tests
 
-    #######Add pscheduler_tests and meta
-
+    meta = default_interface.get('meta')
+    if meta:
+        host['meta'] = meta
+    
     #Build Host record
     host = {}
-            
-    #How to check if host is a VM???????????
-    ###########Add administrator
+
+    # Check if host is a vm
+    vm = default_host.get('vm')
+    if vm:
+        host['vm'] = vm
+
+    # administrator
+    admns = default_host.get('host', {}).get('administrators')
+    if admns:
+        for admn in admns:
+            for email in admn.get('emails'):
+                if email:
+                    admin_info = {'emails': admn.get('emails')}
+                    if admn.get('meta'):
+                        admin_info['meta'] = admn.get('meta')
+                    host['administrators'] = host.get('administrators', [])
+                    host['administrators'].append(admin_info)
+                    break
 
     #processor core count
     processor_count_re = re.compile('node_softnet_cpu_collision_total{.*cpu=(.*)')
     host['processor_core_count'] = len(processor_count_re.findall(node_metrics))
 
-    #OS kernel??????????????
+    #OS kernel
     sysname_re = re.compile('node_uname_info{.*'+'(\{|,| )sysname="(.*?)"')
     release_re = re.compile('node_uname_info{.*'+'(\{|,| )release="(.*?)"')
     try:
@@ -392,22 +403,54 @@ while check_interval <= check_interval_updated:
         logger.info('net_core_netdev_max_backlog not found, Ignoring')
         pass
 
-    ##########Add group_domains
+    # group_domains
+    group_domains = default_host.get('group_domains')
+    if group_domains:
+        for domain in group_domains:
+            if domain is not None:
+                host['group_domains'] = group_domains
+                break
 
     # memory bytes
     memory_bytes_re = re.compile('node_memory_MemTotal_bytes (\d+.*)')
     try:
-        host['memory_bytes'] = memory_bytes_re.findall(node_metrics)[-1]
+        host['memory_bytes'] = float(memory_bytes_re.findall(node_metrics)[-1])
     except Exception as e:
         logger.info('memory_bytes not found, Ignoring')
         pass
 
-    ##########Add location
-    ##########Add group_communities
-    ##########Add role
-    ##########Add access_policy
-    ##########Add access_notes
-    ##########Add meta
+    # location
+    location = default_host.get('location')
+    if location:
+        host['location'] = location
+
+    # group_communities
+    group_communities = default_host.get('group_communities')
+    if group_communities:
+        for community in group_communities:
+            if community is not None:
+                host['group_communities'] = group_communities
+                break
+
+    # role
+    role = default_host.get('role')
+    if role:
+        host['role'] = role
+
+    # access_policy
+    access_policy = default_host.get('access_policy')
+    if access_policy:
+        host['access_policy'] = access_policy
+
+    # access_notes
+    access_notes = default_host.get('access_notes')
+    if access_notes:
+        host['access_notes'] = access_notes
+
+    # meta
+    meta = default_host.get('meta')
+    if meta:
+        host['meta'] = meta
 
     # manufacturer
     manufacturer_re = re.compile('node_dmi_info{.*system_vendor="(.*?)"')
@@ -505,7 +548,7 @@ while check_interval <= check_interval_updated:
     host['client_uuid'] = existing_uuid.get('uuid', new_client_uuid).strip()
 
     host['name'] = host_name
-    #Add ips to host name
+    # ips to host name
     for interface in interfaces:
         host['name'] += interfaces[interface]['addresses']
         record = copy.deepcopy(interfaces[interface])
@@ -529,11 +572,6 @@ while check_interval <= check_interval_updated:
             
             if not server:
                 server = 'http://ls.perfsonar.net:80'
+            print(server)
             r = requests.post(server.strip('/') + '/record/', json=record)
             logger.info("Posted to the server with response {}".format(r.status_code))
-
-    logger.info("Sleeping for {}s. Next config check/ registration after wakeup.".format(check_interval))
-    time.sleep(check_interval)
-    
-    #If the check interval is updated during sleep.
-    check_interval_updated = get_check_interval()
