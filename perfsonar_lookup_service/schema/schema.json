@@ -71,10 +71,6 @@
                     "description": "host manufacturer",
                     "type": "string"
                 },
-                "processor_id": {
-                    "description": "CPU id",
-                    "type": "string"
-                },
                 "perfsonar_version": {
                     "description": "bundle version",
                     "type": "string"

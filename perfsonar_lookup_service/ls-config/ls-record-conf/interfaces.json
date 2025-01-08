@@ -2,7 +2,7 @@
     {
         "capacity": null,
         "name": null,
-        "addresses": null,
+        "addresses": [null],
         "pscheduler_tests": null,
         "mtu": null,
         "mac": null,
