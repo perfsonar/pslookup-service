@@ -11,6 +11,7 @@ import logging
 import sys
 import ssl
 import json
+import socket
 
 #Set logger
 logger = logging.getLogger(__name__)
@@ -63,95 +64,104 @@ def register_record(conf, default_host_path, default_interface_path):
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    node_metrics = None
     try:
         node_metrics = urllib.request.urlopen(node_exporter_url, timeout=30, context=ctx).read().decode("utf-8")
     except urllib.error.URLError as e:
         logger.error('{} request error: {}'.format(node_exporter_url, e))
-        sys.exit('{} request error: {}'.format(node_exporter_url, e))
-
+    except Exception as e:
+        logger.error('{} request error: {}'.format(node_exporter_url, e))
+    
+    perfsonar_metrics = None
     try:
         perfsonar_metrics = urllib.request.urlopen(perfsonar_host_exporter_url, timeout=30, context=ctx).read().decode("utf-8")
     except urllib.error.URLError as e:
         logger.info('perfsonar host metrics not accessed: {}'.format(e))
-
-    #Get the interface details
-    address_lines_re = re.compile(r'node_network_address_info{.*'+'address.*')
-    address_lines = address_lines_re.findall(node_metrics)
-
-    # validation instance of record validation
-    validation = RecordValidation()
+    except socket.timeout as e:
+        logger.info('Time out: perfsonar host metrics not accessed: {}'.format(e))
+    except Exception as e:
+        logger.info('perfsonar host metrics not accessed: {}'.format(e))
 
     # Makes name mandatory
     interfaces = {}
 
-    #Get the address details from each line
-    for address_line in address_lines:
-        address_line_device_re = re.compile('node_network_address_info{.*'+'device="(.*?)"')
-        device = address_line_device_re.findall(address_line)
+    # If node metrics are read successfully. Else use the defaults from supplied conf.
+    if node_metrics:
+        #Get the interface details
+        address_lines_re = re.compile(r'node_network_address_info{.*'+'address.*')
+        address_lines = address_lines_re.findall(node_metrics)
 
-        if device:
-            try:
-                name = device[-1]
+        # validation instance of record validation
+        validation = RecordValidation()
 
-            # If no device details, ignore the issue and proceed
-            except Exception as e:
-                logger.info("Device name not found for adress line {}".format(address_line))
-                pass
-        
-        # Ignore if no device name!
-        if name:
-            address_re = re.compile('node_network_address_info{(.*)address="(.*?)"')
-            address = address_re.match(address_line)
-            try:
-                address = address.groups()[-1]
-            except Exception as e:
-                #Log address not extracted, Ignore record and proceed to next address
-                logger.info('Address not found for address line {}, skipping'.format(address_line))
-                continue
+        #Get the address details from each line
+        for address_line in address_lines:
+            address_line_device_re = re.compile('node_network_address_info{.*'+'device="(.*?)"')
+            device = address_line_device_re.findall(address_line)
 
-            scope_re = re.compile('node_network_address_info{(.*)scope="(.*?)"')
-            scope = scope_re.match(address_line)
-            try:
-                scope = scope.groups()[-1]
-            except Exception as e:
-                # continue processing if scope not found.
-                logger.info('scope not found for address line {}, Ignoring'.format(address_line))
-                pass
+            if device:
+                try:
+                    name = device[-1]
 
-            # Ignore if link-local
-            if scope and (scope != 'link-local'):
+                # If no device details, ignore the issue and proceed
+                except Exception as e:
+                    logger.info("Device name not found for adress line {}".format(address_line))
+                    pass
+            
+            # Ignore if no device name!
+            if name:
+                address_re = re.compile('node_network_address_info{(.*)address="(.*?)"')
+                address = address_re.match(address_line)
+                try:
+                    address = address.groups()[-1]
+                except Exception as e:
+                    #Log address not extracted, Ignore record and proceed to next address
+                    logger.info('Address not found for address line {}, skipping'.format(address_line))
+                    continue
 
-                # Add the details to interface
-                interfaces[name] = interfaces.get(name, {'addresses': []})
-                interfaces[name]['addresses'].append(address)
+                scope_re = re.compile('node_network_address_info{(.*)scope="(.*?)"')
+                scope = scope_re.match(address_line)
+                try:
+                    scope = scope.groups()[-1]
+                except Exception as e:
+                    # continue processing if scope not found.
+                    logger.info('scope not found for address line {}, Ignoring'.format(address_line))
+                    pass
 
-                # Get mtu if not already
-                if not interfaces.get(name).get('mtu'):
-                    mtu_re = re.compile('node_network_mtu_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
+                # Ignore if link-local
+                if scope and (scope != 'link-local'):
 
-                    try:
-                        interfaces[name]['mtu'] = int(mtu_re.findall(node_metrics)[-1])
-                    except Exception as e:
-                        logger.info('mtu not found for address line {}, Ignoring'.format(address_line))
-                        pass
-                
-                # Get capacity if not already
-                if not interfaces.get(name).get('capacity'):
-                    capacity_re = re.compile('node_network_speed_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
-                    try:
-                        interfaces[name]['capacity'] = int(capacity_re.findall(node_metrics)[-1])
-                    except Exception as e:
-                        logger.info('capacity not found for address line {}, Ignoring'.format(address_line))
-                        pass
+                    # Add the details to interface
+                    interfaces[name] = interfaces.get(name, {'addresses': []})
+                    interfaces[name]['addresses'].append(address)
 
-                # Add mac if not already
-                if not interfaces.get(name).get('mac'):
-                    mac_re = re.compile('node_network_info{.*address="(.*?)"'+'.*device="{}"'.format(name))
-                    try:
-                        interfaces[name]['mac'] = mac_re.findall(node_metrics)[-1]
-                    except Exception as e:
-                        logger.info('mac not found for address line {}, Ignoring'.format(address_line))
-                        pass
+                    # Get mtu if not already
+                    if not interfaces.get(name).get('mtu'):
+                        mtu_re = re.compile('node_network_mtu_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
+
+                        try:
+                            interfaces[name]['mtu'] = int(mtu_re.findall(node_metrics)[-1])
+                        except Exception as e:
+                            logger.info('mtu not found for address line {}, Ignoring'.format(address_line))
+                            pass
+                    
+                    # Get capacity if not already
+                    if not interfaces.get(name).get('capacity'):
+                        capacity_re = re.compile('node_network_speed_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
+                        try:
+                            interfaces[name]['capacity'] = int(capacity_re.findall(node_metrics)[-1])
+                        except Exception as e:
+                            logger.info('capacity not found for address line {}, Ignoring'.format(address_line))
+                            pass
+
+                    # Add mac if not already
+                    if not interfaces.get(name).get('mac'):
+                        mac_re = re.compile('node_network_info{.*address="(.*?)"'+'.*device="{}"'.format(name))
+                        try:
+                            interfaces[name]['mac'] = mac_re.findall(node_metrics)[-1]
+                        except Exception as e:
+                            logger.info('mac not found for address line {}, Ignoring'.format(address_line))
+                            pass
 
     # rewrite with Default interfaces
     for default_interface in default_interfaces:
@@ -199,7 +209,7 @@ def register_record(conf, default_host_path, default_interface_path):
     processor_count = default_host.get('host', {}).get('processor_core_count')
     if processor_count:
         host['processor_core_count'] = processor_count
-    else:
+    elif node_metrics:
         processor_count_re = re.compile('node_softnet_cpu_collision_total{.*cpu=(.*)')
         host['processor_core_count'] = len(processor_count_re.findall(node_metrics))
 
@@ -207,7 +217,7 @@ def register_record(conf, default_host_path, default_interface_path):
     os_kernel = default_host.get('host', {}).get('os_kernel')
     if os_kernel:
         host['os_kernel'] = os_kernel
-    else:
+    elif node_metrics:
         sysname_re = re.compile('node_uname_info{.*'+'(\{|,| )sysname="(.*?)"')
         release_re = re.compile('node_uname_info{.*'+'(\{|,| )release="(.*?)"')
         try:
@@ -222,7 +232,7 @@ def register_record(conf, default_host_path, default_interface_path):
     os_name = default_host.get('host', {}).get('os_name')
     if os_name:
         host['os_name'] = os_name
-    else:
+    elif node_metrics:
         os_name_re = re.compile('node_os_info{.*'+'(\{|,| )name="(.*?)"')
         try:
             host['os_name'] = os_name_re.findall(node_metrics)[-1][-1]
@@ -234,7 +244,7 @@ def register_record(conf, default_host_path, default_interface_path):
     os_version = default_host.get('host', {}).get('os_version')
     if os_version:
         host['os_version'] = os_version
-    else:
+    elif node_metrics:
         os_version_re = re.compile('node_os_info{.*'+'(\{|,| )version="(.*?)"')
         try:
             host['os_version'] = os_version_re.findall(node_metrics)[-1][-1]
@@ -246,7 +256,7 @@ def register_record(conf, default_host_path, default_interface_path):
     processor_speed = default_host.get('host', {}).get('processor_speed')
     if processor_speed:
         host['processor_speed'] = processor_speed
-    else:
+    elif node_metrics:
         speed_re = re.compile('node_cpu_frequency_max_hertz{.*cpu="(.*)')
         speeds = speed_re.findall(node_metrics)
         if speeds:
@@ -267,7 +277,7 @@ def register_record(conf, default_host_path, default_interface_path):
     product_name = default_host.get('host', {}).get('product_name')
     if product_name:
         host['product_name'] = product_name
-    else:
+    elif node_metrics:
         product_name_re = re.compile('node_dmi_info{.*product_name="(.*?)"')
         try:
             host['product_name'] = product_name_re.findall(node_metrics)[-1]
@@ -279,7 +289,7 @@ def register_record(conf, default_host_path, default_interface_path):
     perfsonar_bundle = default_host.get('host', {}).get('perfsonar_bundle')
     if perfsonar_bundle:
         host['perfsonar_bundle'] = perfsonar_bundle
-    else:
+    elif perfsonar_metrics:
         perfsonar_bundle_type_re = re.compile('perfsonar_bundle{.*type="(.*?)"')
         try:
             host['perfsonar_bundle'] = perfsonar_bundle_type_re.findall(perfsonar_metrics)[-1]
@@ -291,7 +301,7 @@ def register_record(conf, default_host_path, default_interface_path):
     perfsonar_version = default_host.get('host', {}).get('perfsonar_version')
     if perfsonar_version:
         host['perfsonar_version'] = perfsonar_version
-    else:
+    elif perfsonar_metrics:
         perfsonar_bundle_version_re = re.compile('perfsonar_bundle{.*version="(.*?)"')
         try:
             host['perfsonar_version'] = perfsonar_bundle_version_re.findall(perfsonar_metrics)[-1]
@@ -303,7 +313,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_rmem_max = default_host.get('host', {}).get('net_core_rmem_max')
     if net_core_rmem_max:
         host['net_core_rmem_max'] = net_core_rmem_max
-    else:
+    elif node_metrics:
         net_core_rmem_max_re = re.compile('node_sysctl_net_core_rmem_max (\d+.*)')
         try:
             host['net_core_rmem_max'] = float(net_core_rmem_max_re.findall(node_metrics)[-1])
@@ -315,7 +325,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_rmem_default = default_host.get('host', {}).get('net_core_rmem_default')
     if net_core_rmem_default:
         host['net_core_rmem_default'] = net_core_rmem_default
-    else:
+    elif node_metrics:
         net_core_rmem_default_re = re.compile('net_core_rmem_default (\d+.*)')
         try:
             host['net_core_rmem_default'] = float(net_core_rmem_default_re.findall(node_metrics)[-1])
@@ -327,7 +337,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_wmem_max = default_host.get('host', {}).get('net_core_wmem_max')
     if net_core_wmem_max:
         host['net_core_wmem_max'] = net_core_wmem_max
-    else:
+    elif node_metrics:
         net_core_wmem_max_re = re.compile('net_core_wmem_max (\d+.*)')
         try:
             host['net_core_wmem_max'] = float(net_core_wmem_max_re.findall(node_metrics)[-1])
@@ -339,7 +349,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_wmem_default = default_host.get('host', {}).get('net_core_wmem_default')
     if net_core_wmem_default:
         host['net_core_wmem_default'] = net_core_wmem_default
-    else:
+    elif node_metrics:
         net_core_wmem_default_re = re.compile('net_core_wmem_default (\d+.*)')
         try:
             host['net_core_wmem_default'] = float(net_core_wmem_default_re.findall(node_metrics)[-1])
@@ -351,7 +361,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_rmem_default = default_host.get('host', {}).get('net_ipv4_tcp_rmem_default')
     if net_ipv4_tcp_rmem_default:
         host['net_ipv4_tcp_rmem_default'] = net_ipv4_tcp_rmem_default
-    else:
+    elif node_metrics:
         net_ipv4_tcp_rmem_default_re = re.compile('net_ipv4_tcp_rmem_default (\d+.*)')
         try:
             host['net_ipv4_tcp_rmem_default'] = float(net_ipv4_tcp_rmem_default_re.findall(node_metrics)[-1])
@@ -363,7 +373,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_rmem_max = default_host.get('host', {}).get('net_ipv4_tcp_rmem_max')
     if net_ipv4_tcp_rmem_max:
         host['net_ipv4_tcp_rmem_max'] = net_ipv4_tcp_rmem_max
-    else:
+    elif node_metrics:
         net_ipv4_tcp_rmem_max_re = re.compile('net_ipv4_tcp_rmem_max (\d+.*)')
         try:
             host['net_ipv4_tcp_rmem_max'] = float(net_ipv4_tcp_rmem_max_re.findall(node_metrics)[-1])
@@ -375,7 +385,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_rmem_min = default_host.get('host', {}).get('net_ipv4_tcp_rmem_min')
     if net_ipv4_tcp_rmem_min:
         host['net_ipv4_tcp_rmem_min'] = net_ipv4_tcp_rmem_min
-    else:
+    elif node_metrics:
         net_ipv4_tcp_rmem_min_re = re.compile('net_ipv4_tcp_rmem_min (\d+.*)')
         try:
             host['net_ipv4_tcp_rmem_min'] = float(net_ipv4_tcp_rmem_min_re.findall(node_metrics)[-1])
@@ -387,7 +397,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_wmem_default = default_host.get('host', {}).get('net_ipv4_tcp_wmem_default')
     if net_ipv4_tcp_wmem_default:
         host['net_ipv4_tcp_wmem_default'] = net_ipv4_tcp_wmem_default
-    else:
+    elif node_metrics:
         net_ipv4_tcp_wmem_default_re = re.compile('net_ipv4_tcp_wmem_default (\d+.*)')
         try:
             host['net_ipv4_tcp_wmem_default'] = float(net_ipv4_tcp_wmem_default_re.findall(node_metrics)[-1])
@@ -399,7 +409,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_wmem_max = default_host.get('host', {}).get('net_ipv4_tcp_wmem_max')
     if net_ipv4_tcp_wmem_max:
         host['net_ipv4_tcp_wmem_max'] = net_ipv4_tcp_wmem_max
-    else:
+    elif node_metrics:
         net_ipv4_tcp_wmem_max_re = re.compile('net_ipv4_tcp_wmem_max (\d+.*)')
         try:
             host['net_ipv4_tcp_wmem_max'] = float(net_ipv4_tcp_wmem_max_re.findall(node_metrics)[-1])
@@ -411,7 +421,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_wmem_min = default_host.get('host', {}).get('net_ipv4_tcp_wmem_min')
     if net_ipv4_tcp_wmem_min:
         host['net_ipv4_tcp_wmem_min'] = net_ipv4_tcp_wmem_min
-    else:
+    elif node_metrics:
         net_ipv4_tcp_wmem_min_re = re.compile('net_ipv4_tcp_wmem_min (\d+.*)')
         try:
             host['net_ipv4_tcp_wmem_min'] = float(net_ipv4_tcp_wmem_min_re.findall(node_metrics)[-1])
@@ -423,7 +433,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_no_metrics_save = default_host.get('host', {}).get('net_ipv4_tcp_no_metrics_save')
     if net_ipv4_tcp_no_metrics_save:
         host['net_ipv4_tcp_no_metrics_save'] = net_ipv4_tcp_no_metrics_save
-    else:
+    elif node_metrics:
         net_ipv4_tcp_no_metrics_save_re = re.compile('net_ipv4_tcp_no_metrics_save (\d+.*)')
         try:
             host['net_ipv4_tcp_no_metrics_save'] = bool(int(net_ipv4_tcp_no_metrics_save_re.findall(node_metrics)[-1]))
@@ -436,7 +446,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_mtu_probing = default_host.get('host', {}).get('net_ipv4_tcp_mtu_probing')
     if net_ipv4_tcp_mtu_probing:
         host['net_ipv4_tcp_mtu_probing'] = net_ipv4_tcp_mtu_probing
-    else:
+    elif node_metrics:
         net_ipv4_tcp_mtu_probing_re = re.compile('net_ipv4_tcp_mtu_probing (\d+.*)')
         try:
             host['net_ipv4_tcp_mtu_probing'] = int(net_ipv4_tcp_mtu_probing_re.findall(node_metrics)[-1])
@@ -448,7 +458,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_default_qdisc = default_host.get('host', {}).get('net_core_default_qdisc')
     if net_core_default_qdisc:
         host['net_core_default_qdisc'] = net_core_default_qdisc
-    else:
+    elif node_metrics:
         default_qdisc_line_re = re.compile('.*net.core.default_qdisc.*')
         try:
             default_qdisc_line = default_qdisc_line_re.findall(node_metrics)[-1]
@@ -462,7 +472,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_conf_all_arp_ignore = default_host.get('host', {}).get('net_ipv4_conf_all_arp_ignore')
     if net_ipv4_conf_all_arp_ignore:
         host['net_ipv4_conf_all_arp_ignore'] = net_ipv4_conf_all_arp_ignore
-    else:
+    elif node_metrics:
         net_ipv4_conf_all_arp_ignore_re = re.compile('node_sysctl_net_ipv4_conf_all_arp_ignore (\d+.*)')
         try:
             host['net_ipv4_conf_all_arp_ignore'] = int(net_ipv4_conf_all_arp_ignore_re.findall(node_metrics)[-1])
@@ -474,7 +484,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_conf_all_arp_announce = default_host.get('host', {}).get('net_ipv4_conf_all_arp_announce')
     if net_ipv4_conf_all_arp_announce:
         host['net_ipv4_conf_all_arp_announce'] = net_ipv4_conf_all_arp_announce
-    else:
+    elif node_metrics:
         net_ipv4_conf_all_arp_announce_re = re.compile('net_ipv4_conf_all_arp_announce (\d+.*)')
         try:
             host['net_ipv4_conf_all_arp_announce'] = int(net_ipv4_conf_all_arp_announce_re.findall(node_metrics)[-1])
@@ -486,7 +496,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_conf_default_arp_filter = default_host.get('host', {}).get('net_ipv4_conf_default_arp_filter')
     if net_ipv4_conf_default_arp_filter:
         host['net_ipv4_conf_default_arp_filter'] = net_ipv4_conf_default_arp_filter
-    else:
+    elif node_metrics:
         net_ipv4_conf_default_arp_filter_re = re.compile('net_ipv4_conf_default_arp_filter (\d+.*)')
         try:
             host['net_ipv4_conf_default_arp_filter'] = bool(int(net_ipv4_conf_default_arp_filter_re.findall(node_metrics)[-1]))
@@ -498,7 +508,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_conf_all_arp_filter = default_host.get('host', {}).get('net_ipv4_conf_all_arp_filter')
     if net_ipv4_conf_all_arp_filter:
         host['net_ipv4_conf_all_arp_filter'] = net_ipv4_conf_all_arp_filter
-    else:
+    elif node_metrics:
         net_ipv4_conf_all_arp_filter_re = re.compile('net_ipv4_conf_all_arp_filter (\d+.*)')
         try:
             host['net_ipv4_conf_all_arp_filter'] = bool(int(net_ipv4_conf_all_arp_filter_re.findall(node_metrics)[-1]))
@@ -510,7 +520,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_core_netdev_max_backlog = default_host.get('host', {}).get('net_core_netdev_max_backlog')
     if net_core_netdev_max_backlog:
         host['net_core_netdev_max_backlog'] = net_core_netdev_max_backlog
-    else:
+    elif node_metrics:
         net_core_netdev_max_backlog_re = re.compile('node_sysctl_net_core_netdev_max_backlog (\d+.*)')
         try:
             host['net_core_netdev_max_backlog'] = int(net_core_netdev_max_backlog_re.findall(node_metrics)[-1])
@@ -530,7 +540,7 @@ def register_record(conf, default_host_path, default_interface_path):
     memory_bytes = default_host.get('host', {}).get('memory_bytes')
     if memory_bytes:
         host['memory_bytes'] = memory_bytes
-    else:
+    elif node_metrics:
         memory_bytes_re = re.compile('node_memory_MemTotal_bytes (\d+.*)')
         try:
             host['memory_bytes'] = float(memory_bytes_re.findall(node_metrics)[-1])
@@ -546,14 +556,10 @@ def register_record(conf, default_host_path, default_interface_path):
     # group_communities
     group_communities = default_host.get('host', {}).get('group_communities')
     if group_communities:
-        host['group_communities'] = group_communities
-    else:
-        group_communities = default_host.get('group_communities')
-        if group_communities:
-            for community in group_communities:
-                if community is not None:
-                    host['group_communities'] = group_communities
-                    break
+        for community in group_communities:
+            if community is not None:
+                host['group_communities'] = group_communities
+                break
 
     # role
     role = default_host.get('host', {}).get('role')
@@ -579,7 +585,7 @@ def register_record(conf, default_host_path, default_interface_path):
     manufacturer = default_host.get('host', {}).get('manufacturer')
     if manufacturer:
         host['manufacturer'] = manufacturer
-    else:
+    elif node_metrics:
         manufacturer_re = re.compile('node_dmi_info{.*system_vendor="(.*?)"')
         try:
             host['manufacturer'] = manufacturer_re.findall(node_metrics)[-1]
@@ -591,7 +597,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_congestion_control')
     if net_ipv4_tcp_congestion_control:
         host['net_ipv4_tcp_congestion_control'] = net_ipv4_tcp_congestion_control
-    else:
+    elif node_metrics:
         net_ipv4_tcp_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_congestion_control.*')
         try:
             net_ipv4_tcp_congestion_control_line = net_ipv4_tcp_congestion_control_line_re.findall(node_metrics)[-1]
@@ -605,7 +611,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_available_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_available_congestion_control')
     if net_ipv4_tcp_available_congestion_control:
         host['net_ipv4_tcp_available_congestion_control'] = net_ipv4_tcp_available_congestion_control
-    else:
+    elif node_metrics:
         net_ipv4_tcp_available_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_available_congestion_control.*')
         try:
             net_ipv4_tcp_available_congestion_control_lines = net_ipv4_tcp_available_congestion_control_line_re.findall(node_metrics)
@@ -624,7 +630,7 @@ def register_record(conf, default_host_path, default_interface_path):
     net_ipv4_tcp_allowed_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_allowed_congestion_control')
     if net_ipv4_tcp_allowed_congestion_control:
         host['net_ipv4_tcp_allowed_congestion_control'] = net_ipv4_tcp_allowed_congestion_control
-    else:
+    elif node_metrics:
         net_ipv4_tcp_allowed_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_allowed_congestion_control.*')
         try:
             net_ipv4_tcp_allowed_congestion_control_lines = net_ipv4_tcp_allowed_congestion_control_line_re.findall(node_metrics)
@@ -643,7 +649,7 @@ def register_record(conf, default_host_path, default_interface_path):
     os_architecture = default_host.get('host', {}).get('os_architecture')
     if os_architecture:
         host['os_architecture'] = os_architecture
-    else:
+    elif node_metrics:
         os_architecture_re = re.compile('node_uname_info{.*machine="(.*?)"')
         try:
             host['os_architecture'] = os_architecture_re.findall(node_metrics)[-1]
@@ -662,9 +668,10 @@ def register_record(conf, default_host_path, default_interface_path):
         host['archive_service'] = archive_service
 
     #Gather host name
+    host_name = None
     host_name = default_host.get('host', {}).get('name')
     #If the name is empty or contains only null
-    if (not host_name) or (host_name and not host_name[-1]):
+    if ((not host_name) or (host_name and not host_name[-1])) and node_metrics:
         node_name_re = re.compile('nodename="(.*?)"')
         host_name = node_name_re.findall(node_metrics)
 
@@ -678,6 +685,11 @@ def register_record(conf, default_host_path, default_interface_path):
                 existing_uuid[key] = val
     except Exception as e:
         logger.info('Error reading client UUID: {}'.format(e))
+    
+    #Hostname needed for client_uuid. If not found, exit
+    if not host_name:
+        logger.debug('Hostname not realized. Exiting without writing record...')
+        return
 
     # Evaluate seed
     logger.info('')

@@ -52,14 +52,14 @@ def get_configs():
         sys.exit('Error reading the registration config: {}'.format(e))
 
     try:
-        default_host_path = conf.get('auto_discover', 'host_overwite_conf_path')
+        default_host_path = conf.get('record_data', 'host_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
         logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/host.json'))
         default_host_path = '/etc/perfsonar/ls-config/ls-record-conf/host.json'
 
     try:
-        default_interface_path = conf.get('auto_discover', 'interface_overwite_conf_path')
+        default_interface_path = conf.get('record_data', 'interface_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
         logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/interfaces.json'))
@@ -83,13 +83,13 @@ if not args.DISABLE_INOTIFY:
 
     watchMask2 = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
     try:
-        watcher.add_watch(default_host_path, watchMask2)
         logger.debug('Watching default_host_path {}.'.format(default_host_path))
+        watcher.add_watch(default_host_path, watchMask2)
     except Exception as e:
         logger.debug('Watching default_host_path failed with error {}.'.format(e))
     try:
-        watcher.add_watch(default_interface_path, watchMask2)
         logger.debug('Watching default_interface_path {}.'.format(default_interface_path))
+        watcher.add_watch(default_interface_path, watchMask2)
     except Exception as e:
         logger.debug('Watching default_interface_path failed with error {}.'.format(e))
 
