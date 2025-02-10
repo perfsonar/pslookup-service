@@ -1,0 +1,14 @@
+[Unit]
+Description=perfSONAR psLookupClient Agent
+After=network.target
+
+[Service]
+Type=exec
+ExecStart=/usr/lib/perfsonar/pslookup/bin/pslookup_client_agent --config=/etc/perfsonar/pslookup/pslookup-registration.conf --logger=/etc/perfsonar/pslookup/pslookup-client-agent-logger.conf
+User=perfsonar
+Group=perfsonar
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

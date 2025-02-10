@@ -1,0 +1,35 @@
+#!/bin/bash
+# postinst script
+#
+# see: dh_installdeb(1)
+
+set -e
+
+case "$1" in
+    configure)
+        mkdir -p /var/log/perfsonar
+        chown perfsonar:perfsonar /var/log/perfsonar
+        mkdir -p /var/lib/perfsonar/pslookup
+        chown perfsonar:perfsonar /var/lib/perfsonar/pslookup
+        mkdir -p /var/lib/perfsonar/pslookup
+        # check if installation or update, where version is a parameter
+        if [ -z "$2" ]; then
+
+            #Enable service on new install
+            systemctl daemon-reload  || :
+            systemctl enable pslookup-service-client-agent.service  || :
+        fi
+        systemctl start pslookup-service-client-agent.service  || :
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+exit 0

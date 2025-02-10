@@ -10,14 +10,14 @@ setup(
     author_email='perfsonar-developer@perfsonar.net',
     license='Apache 2.0',
     packages=[
-        'lookup_service'
+        'pslookup'
     ],
     install_requires=['requests',
                       'jsonschema',
                       'pyinotify'],
 
     #include_package_data=True,
-    package_data={"lookup_service": ["schema/schema.json"]},
+    package_data={"pslookup": ["schema/schema.json"]},
     tests_require=['nose'],
     test_suite='nose.collector',
 )

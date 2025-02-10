@@ -9,4 +9,4 @@ changecom()dnl
 #
 
 # Dependencies
-perfsonar_lookup_service
+pslookup

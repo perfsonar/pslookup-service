@@ -14,12 +14,12 @@ import json
 import socket
 
 #Set logger
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.StreamHandler()
-                    ])
+logger = logging.getLogger("TransactionLogger")
+#logging.basicConfig(level=logging.DEBUG,
+#                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+#                    handlers=[
+#                        logging.StreamHandler()
+#                    ])
 
 # Read default host
 def get_default_host_details(default_host_path):
@@ -676,7 +676,7 @@ def register_record(conf, default_host_path, default_interface_path):
         host_name = node_name_re.findall(node_metrics)
 
     # build and check client_uuid
-    uuid_persist_file = '/var/lib/perfsonar/lookup-service/client-uuid.txt'
+    uuid_persist_file = '/var/lib/perfsonar/pslookup/client-uuid.txt'
     existing_uuid = {}
     try:
         with open(uuid_persist_file, 'r') as file:
@@ -685,11 +685,7 @@ def register_record(conf, default_host_path, default_interface_path):
                 existing_uuid[key] = val
     except Exception as e:
         logger.info('Error reading client UUID: {}'.format(e))
-    
-    #Hostname needed for client_uuid. If not found, exit
-    if not host_name:
-        logger.debug('Hostname not realized. Exiting without writing record...')
-        return
+
 
     # Evaluate seed
     logger.info('')
@@ -701,7 +697,13 @@ def register_record(conf, default_host_path, default_interface_path):
     # Generate UUID with seed
     rd.seed(seed)
     new_client_uuid = uuid.UUID(int=rd.getrandbits(128), version=4).hex
-    new_client_uuid += '-' + host_name[0]
+
+    #Hostname needed for client_uuid.
+    if not host_name:
+        logger.debug('Hostname not realized. Using UUID without hostname...')
+    else:
+        new_client_uuid += '-' + host_name[0]
+        host['name'] = host_name
 
     if existing_uuid:
         if existing_uuid.get('uuid', '').strip() != new_client_uuid:
@@ -714,10 +716,9 @@ def register_record(conf, default_host_path, default_interface_path):
 
     host['client_uuid'] = existing_uuid.get('uuid', new_client_uuid).strip()
 
-    host['name'] = host_name
     # ips to host name
     for interface in interfaces:
-        host['name'] += interfaces[interface]['addresses']
+        host['name'] = host.get('name', []) + interfaces[interface]['addresses']
         record = copy.deepcopy(interfaces[interface])
         record['name'] = interface
         record['host'] = host

@@ -1,0 +1,4 @@
+build/lib/pslookup/ /usr/lib/python3/dist-packages/
+bin/pslookup_client_agent /usr/lib/perfsonar/pslookup/bin/pslookup_client_agent
+systemd /usr/lib/systemd/system/
+pslookup-config /etc/perfsonar/pslookup/

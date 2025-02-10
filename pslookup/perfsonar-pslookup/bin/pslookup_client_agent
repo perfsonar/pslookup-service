@@ -1,10 +1,16 @@
+#!/usr/bin/env python3
+'''
+Agent to run perfsonar lookup service.
+'''
+
 import argparse
 import pyinotify
 import logging
+import logging.config
 from configparser import ConfigParser
 import sys
 import time
-from lookup_service.lookup_service import register_record
+from pslookup.lookup_service import register_record
 import os
 
 
@@ -16,8 +22,8 @@ import os
 # Parse command-line options
 # Instantiate the parser
 parser = argparse.ArgumentParser(description='lookupservice_registration_agent')
-parser.add_argument('--config', dest='CONFIG_FILE', action='store', required=False, default='ls-config/ls-registration.conf', help='configuration file')
-parser.add_argument('--logger', dest='LOGGER_CONF', action='store', help='Logger Config', required=False)
+parser.add_argument('--config', dest='CONFIG_FILE', action='store', required=False, default='/etc/perfsonar/pslookup/pslookup-registration.conf', help='configuration file')
+parser.add_argument('--logger', dest='LOGGER_CONF', action='store', help='Logger Config', default='/etc/perfsonar/pslookup/pslookup-client-agent-logger.conf', required=False)
 parser.add_argument('--disable-inotify', dest='DISABLE_INOTIFY', action='store_true', help='disable inotify for file change detection.')
 parser.add_argument('--verbose', dest='DEBUGFLAG', action='store_true', help='Add additional debug output')
 ############
@@ -34,11 +40,11 @@ if not args.LOGGER_CONF:
         output_level = logging.DEBUG
     
     logging.basicConfig(level=output_level)
-    logger = logging.getLogger('lookupservice_registration_agent')
+    logger = logging.getLogger('pslookup')
 
 else:
     logging.config.fileConfig(args.LOGGER_CONF)
-    logger = logging.getLogger("lookupservice_registration_agent")
+    logger = logging.getLogger("pslookup")
 
 #Get the paths of config and default files
 #Read the config file
@@ -55,15 +61,15 @@ def get_configs():
         default_host_path = conf.get('record_data', 'host_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
-        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/host.json'))
-        default_host_path = '/etc/perfsonar/ls-config/ls-record-conf/host.json'
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup-config/pslookup-record-conf/host.json'))
+        default_host_path = '/etc/perfsonar/pslookup-config/pslookup-record-conf/host.json'
 
     try:
         default_interface_path = conf.get('record_data', 'interface_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
-        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/ls-config/ls-record-conf/interfaces.json'))
-        default_interface_path = '/etc/perfsonar/ls-config/ls-record-conf/interfaces.json'
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup-config/pslookup-record-conf/interfaces.json'))
+        default_interface_path = '/etc/perfsonar/pslookup-config/pslookup-record-conf/interfaces.json'
     
     return conf, default_host_path, default_interface_path
 

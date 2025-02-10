@@ -6,7 +6,7 @@ import pkg_resources
 class RecordValidation(object):
 
     def __init__(self):
-        schema_file = pkg_resources.resource_filename('lookup_service', 'schema/schema.json')
+        schema_file = pkg_resources.resource_filename('pslookup', 'schema/schema.json')
         with open(schema_file) as file:
             self.schema = json.load(file)
     
