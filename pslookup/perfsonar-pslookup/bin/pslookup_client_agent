@@ -61,15 +61,15 @@ def get_configs():
         default_host_path = conf.get('record_data', 'host_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
-        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup-config/pslookup-record-conf/host.json'))
-        default_host_path = '/etc/perfsonar/pslookup-config/pslookup-record-conf/host.json'
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup/pslookup-record-conf/host.json'))
+        default_host_path = '/etc/perfsonar/pslookup/pslookup-record-conf/host.json'
 
     try:
         default_interface_path = conf.get('record_data', 'interface_overwite_conf_path')
     except Exception as e:
         logger.info('Error getting the default host path: {}'.format(e))
-        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup-config/pslookup-record-conf/interfaces.json'))
-        default_interface_path = '/etc/perfsonar/pslookup-config/pslookup-record-conf/interfaces.json'
+        logger.info('Default the default host path to: {}'.format('/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json'))
+        default_interface_path = '/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json'
     
     return conf, default_host_path, default_interface_path
 
