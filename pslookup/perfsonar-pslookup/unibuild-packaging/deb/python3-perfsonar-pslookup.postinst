@@ -8,6 +8,7 @@ set -e
 case "$1" in
     configure)
         sudo adduser --system --no-create-home --group perfsonar > /dev/null || :
+        chmod 0755 /usr/lib/perfsonar/pslookup/bin/pslookup_client_agent
         mkdir -p /var/log/perfsonar
         chown perfsonar:perfsonar /var/log/perfsonar
         mkdir -p /var/lib/perfsonar/pslookup
