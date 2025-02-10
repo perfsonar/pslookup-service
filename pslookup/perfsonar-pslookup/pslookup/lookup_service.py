@@ -699,10 +699,10 @@ def register_record(conf, default_host_path, default_interface_path):
     new_client_uuid = uuid.UUID(int=rd.getrandbits(128), version=4).hex
 
     #Hostname needed for client_uuid.
-    if not host_name:
+    if ((not host_name) or (host_name and not host_name[-1])):
         logger.debug('Hostname not realized. Using UUID without hostname...')
     else:
-        new_client_uuid += '-' + host_name[0]
+        new_client_uuid += '-' + '-'.join(sorted(host_name))
         host['name'] = host_name
 
     if existing_uuid:
