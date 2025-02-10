@@ -7,6 +7,8 @@ set -e
 
 case "$1" in
     configure)
+        /usr/sbin/groupadd -r perfsonar 2> /dev/null || :
+        /usr/sbin/useradd -g perfsonar -r -s /sbin/nologin -c "perfSONAR User" -d /tmp perfsonar 2> /dev/null || :
         mkdir -p /var/log/perfsonar
         chown perfsonar:perfsonar /var/log/perfsonar
         mkdir -p /var/lib/perfsonar/pslookup
