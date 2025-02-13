@@ -82,6 +82,9 @@ rm -rf %{buildroot}
 %{config_base}/*
 /usr/lib/perfsonar/pslookup/bin/pslookup_client_agent
 /usr/lib/systemd/system/pslookup-service-client-agent.service
+%attr(0755, perfsonar, perfsonar) %{pslookup_bin_base}/pslookup
+%attr(0755, perfsonar, perfsonar) %{command_base}/validate
+%{_bindir}/pslookup
 
 %post
 mkdir -p /var/log/perfsonar

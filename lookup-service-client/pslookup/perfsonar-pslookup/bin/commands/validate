@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+
+'''
+This program will read a JSON file from local filesystem and 
+validate the JSON. An exit code of 0 indicates valid, 1 indicates it is 
+invalid, and 2 indicates an error occurred.
+'''
+
+import argparse
+import sys
+from pslookup.validate_record import RecordValidation 
+from pslookup.lookup_service import build_record, build_uuid
+from configparser import ConfigParser
+import json
+
+##########
+# Parse command-line options
+# Instantiate the parser
+parser = argparse.ArgumentParser(
+    prog='validate',
+    description='Validate the pSLookup record from config files')
+parser.add_argument('--config', dest='CONFIG_FILE', action='store', required=False, default='/etc/perfsonar/pslookup/pslookup-registration.conf', 
+                    help='configuration file. record is built using the config and validated.')
+parser.add_argument('--record', dest='RECORD_FILE', action='store_true', 
+                    help='json record to validate. Ignores config and validates the record in json file.')
+
+args = parser.parse_args()
+
+
+#Get the paths of config and default files
+#Read the config file
+def get_configs():
+    conf = ConfigParser()
+
+    # One of config_file and record_file is required
+
+    if not args.RECORD_FILE:
+        try:
+            conf.read(args.CONFIG_FILE)
+        except Exception as e:
+            print("Error: Atleast one of config_file or record_file is required to validate")
+            sys.exit(2)
+
+        try:
+            default_host_path = conf.get('record_data', 'host_overwite_conf_path')
+        except Exception as e:
+            default_host_path = '/etc/perfsonar/pslookup/pslookup-record-conf/host.json'
+
+        try:
+            default_interface_path = conf.get('record_data', 'interface_overwite_conf_path')
+        except Exception as e:
+            default_interface_path = '/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json'
+        
+        # Return the extracted config
+        return {'conf':conf, 'default_host_path':default_host_path, 'default_interface_path':default_interface_path}
+    
+    else:
+        # Return the record file path
+        return {'record_file': args.RECORD_FILE}
+
+
+def validate_record():
+
+    config = get_configs()
+    validation = RecordValidation()
+
+    if config.get('record_file'):
+        try:
+            with open(config.get('record_file')) as file:
+                record = json.load(file)
+        except Exception as e:
+            print("Error: Error reading the record file: {}".format(e))
+            sys.exit(2)
+
+        # validate record
+        try:
+            registration_record = validation.validate_record(record)
+        except Exception as e:
+            print("Error: Error validating the record: {}".format(e))
+            sys.exit(2)
+
+
+        if not registration_record['validated']:
+            print("Info: Record Invalid: {}".format(registration_record['error']))
+            sys.exit(1)
+        
+        else:
+            print("Record Validation Successful")
+            sys.exit(0)
+    
+    else:
+        records = build_record(**config)
+
+        if not records:
+            print("Record could not be built. Verify Config.")
+            sys.exit(2)
+
+        # Do not persist the client uuid. Otherwise, will overwrite the uuid from registration process.
+        host_client_uuid = build_uuid(records[-1], persist_uuid_to_disk=False)
+
+        for record in records:
+
+            # Add the client UUID since it is mandatory
+            record['host'] = record.get('host', {})
+            # persist new client_uuid
+            record['host']['client_uuid'] = host_client_uuid
+
+            # validate record
+            try:
+                registration_record = validation.validate_record(record)
+            except Exception as e:
+                print("Error: Error validating the record: {}".format(e))
+                sys.exit(2)
+
+            if not registration_record['validated']:
+                print("Info: Record Invalid: {}".format(registration_record['error']))
+                sys.exit(1)
+
+        
+
+        print("Record Validation Successful")
+        sys.exit(0)
+
+# Validate
+validate_record()

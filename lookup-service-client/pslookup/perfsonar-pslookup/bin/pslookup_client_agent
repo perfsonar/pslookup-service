@@ -16,7 +16,7 @@ import os
 
 ##########
 # set the process name
-############################# not straight forward in python?
+##########
 
 ##########
 # Parse command-line options
@@ -128,7 +128,7 @@ while(1):
     start = time.time()
 
     #############
-    logger.info("Registerting record...")
+    logger.info("Starting the record generation and registration process...")
     register_record(conf, default_host_path, default_interface_path)
     logger.info("Registration agent finished running.")
     ###########

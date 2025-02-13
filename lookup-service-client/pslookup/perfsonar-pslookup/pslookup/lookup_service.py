@@ -41,7 +41,7 @@ def get_default_interface_details(default_interface_path):
         logger.info('Error reading the default interface Info: {}'.format(e))
     return default_interfaces
 
-def register_record(conf, default_host_path, default_interface_path):
+def build_record(conf, default_host_path, default_interface_path):
 
     default_host = get_default_host_details(default_host_path)
     default_interfaces = get_default_interface_details(default_interface_path)
@@ -90,9 +90,6 @@ def register_record(conf, default_host_path, default_interface_path):
         #Get the interface details
         address_lines_re = re.compile(r'node_network_address_info{.*'+'address.*')
         address_lines = address_lines_re.findall(node_metrics)
-
-        # validation instance of record validation
-        validation = RecordValidation()
 
         #Get the address details from each line
         for address_line in address_lines:
@@ -168,21 +165,22 @@ def register_record(conf, default_host_path, default_interface_path):
 
         # Name mandatory!
         if default_interface['name']:
+            interfaces[default_interface['name']] = interfaces.get(default_interface['name'], {})
             if default_interface.get('capacity'):
-                interfaces[name]['capacity'] = default_interface['capacity']
+                interfaces[default_interface['name']]['capacity'] = default_interface['capacity']
             if default_interface.get('addresses') and default_interface['addresses'][-1]:
-                interfaces[name]['addresses'] = default_interface['addresses']
+                interfaces[default_interface['name']]['addresses'] = default_interface['addresses']
             # pscheduler_tests and meta
             pscheduler_tests = default_interface.get('pscheduler_tests')
             if pscheduler_tests:
-                interfaces[name]['pscheduler_tests'] = pscheduler_tests
+                interfaces[default_interface['name']]['pscheduler_tests'] = pscheduler_tests
             meta = default_interface.get('meta')
             if meta:
                 host['meta'] = meta
             if default_interface.get('mtu'):
-                interfaces[name]['mtu'] = default_interface['mtu']
+                interfaces[default_interface['name']]['mtu'] = default_interface['mtu']
             if default_interface.get('mac'):
-                interfaces[name]['mac'] = default_interface['mac'] 
+                interfaces[default_interface['name']]['mac'] = default_interface['mac'] 
     
     #Build Host record
     host = {}
@@ -659,12 +657,14 @@ def register_record(conf, default_host_path, default_interface_path):
     
     # pscheduler_service
     pscheduler_service = default_host.get('host', {}).get('pscheduler_service')
-    if pscheduler_service and any(pscheduler_service.values()):
+    pscheduler_service_required = [all(pscheduler_service.get('urls')), all(pscheduler_service.get('tools')), all(pscheduler_service.get('tests'))]
+    if pscheduler_service and all(pscheduler_service_required):
         host['pscheduler_service'] = pscheduler_service
     
     # archive_service
     archive_service = default_host.get('host', {}).get('archive_service')
-    if archive_service and any(archive_service.values()):
+    archive_service_required = [all(archive_service.get('urls'))]
+    if archive_service and all(archive_service_required):
         host['archive_service'] = archive_service
 
     #Gather host name
@@ -675,6 +675,25 @@ def register_record(conf, default_host_path, default_interface_path):
         node_name_re = re.compile('nodename="(.*?)"')
         host_name = node_name_re.findall(node_metrics)
 
+    #Hostname needed for client_uuid.
+    if ((not host_name) or (host_name and not host_name[-1])):
+        logger.debug('Hostname not realized.')
+    else:
+        host['name'] = host_name
+
+    # Build the records to register
+    # ips to host name
+    records = []
+    for interface in interfaces:
+        host['name'] = host.get('name', []) + interfaces[interface]['addresses']
+        record = copy.deepcopy(interfaces[interface])
+        record['name'] = interface
+        record['host'] = host
+        records.append(record)
+
+    return records
+
+def build_uuid(record, persist_uuid_to_disk=True):
     # build and check client_uuid
     uuid_persist_file = '/var/lib/perfsonar/pslookup/client-uuid.txt'
     existing_uuid = {}
@@ -685,7 +704,6 @@ def register_record(conf, default_host_path, default_interface_path):
                 existing_uuid[key] = val
     except Exception as e:
         logger.info('Error reading client UUID: {}'.format(e))
-
 
     # Evaluate seed
     logger.info('')
@@ -699,35 +717,51 @@ def register_record(conf, default_host_path, default_interface_path):
     new_client_uuid = uuid.UUID(int=rd.getrandbits(128), version=4).hex
 
     #Hostname needed for client_uuid.
+    host_name = record.get('host', {}).get('name', [])
+
     if ((not host_name) or (host_name and not host_name[-1])):
         logger.debug('Hostname not realized. Using UUID without hostname...')
     else:
         new_client_uuid += '-' + '-'.join(sorted(host_name))
-        host['name'] = host_name
 
     if existing_uuid:
         if existing_uuid.get('uuid', '').strip() != new_client_uuid:
             logger.info("Possible host name change. Existing UUID {} did not match with Newly generated UUID {}".format(existing_uuid.get('uuid').strip(), new_client_uuid))
-    else:
+    elif persist_uuid_to_disk:
         os.makedirs(os.path.dirname(uuid_persist_file), exist_ok=True)
         with open(uuid_persist_file, 'w') as file:
+            # persist new client_uuid
             file.write('uuid='+new_client_uuid+'\n')
             file.write('seed='+str(seed))
 
-    host['client_uuid'] = existing_uuid.get('uuid', new_client_uuid).strip()
+    # persist new client_uuid
+    return new_client_uuid
 
+def register_record(conf, default_host_path, default_interface_path):
+
+    records = build_record(conf, default_host_path, default_interface_path)
+
+    if not records:
+        logger.warning("No records generated. Check configs.")
+        return
+    
+    host_client_uuid = build_uuid(records[-1])
+
+    # validation instance of record validation
+    validation = RecordValidation()
+    
     # ips to host name
-    for interface in interfaces:
-        host['name'] = host.get('name', []) + interfaces[interface]['addresses']
-        record = copy.deepcopy(interfaces[interface])
-        record['name'] = interface
-        record['host'] = host
+    for record in records:
+
+        record['host'] = record.get('host', {})
+        # persist new client_uuid
+        record['host']['client_uuid'] = host_client_uuid
 
         # validate record
         registration_record = validation.validate_record(record)
 
         if not registration_record['validated']:
-            logger.error("Error validating record: {}".format(registration_record['error']))
+            logger.error("Error validating record {}: \n{}".format({record}, registration_record['error']))
 
         else:
             logger.info('Record validated')

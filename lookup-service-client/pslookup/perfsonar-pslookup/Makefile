@@ -30,10 +30,13 @@ ifndef BINPATH
 endif
 	python3 setup.py install --root=${PYTHON-ROOTPATH} -O1 --record=INSTALLED_FILES
 	mkdir -p ${PERFSONAR-ROOTPATH}/bin
+	mkdir -p ${PERFSONAR-ROOTPATH}/bin/commands
 	mkdir -p ${PERFSONAR-CONFIGPATH} 
 	mkdir -p ${PERFSONAR-CONFIGPATH}/pslookup-record-conf
 	mkdir -p ${PERFSONAR-DATAPATH} 
 	mkdir -p ${BINPATH}
+	ln -fs  /usr/lib/perfsonar/pslookup/bin/pslookup ${BINPATH}/pslookup
+	install -m 0755 bin/commands/* ${PERFSONAR-ROOTPATH}/bin/commands
 	install -m 0755 bin/pslookup* ${PERFSONAR-ROOTPATH}/bin
 	install -m 0644 pslookup-config/pslookup-record-conf/* ${PERFSONAR-CONFIGPATH}/pslookup-record-conf
 	install -m 0644 pslookup-config/*.conf ${PERFSONAR-CONFIGPATH}

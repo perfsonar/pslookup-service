@@ -16,8 +16,9 @@ setup(
                       'jsonschema',
                       'pyinotify'],
 
-    #include_package_data=True,
-    package_data={"pslookup": ["schema/schema.json"]},
+    include_package_data=True,
+    package_dir={'pslookup': 'pslookup'},
+    package_data={"pslookup": ["schema/*.json"]},
     tests_require=['nose'],
     test_suite='nose.collector',
 )

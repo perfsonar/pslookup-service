@@ -329,7 +329,8 @@
                     "description": "write urls for archive results",
                     "type": "array",
                     "items": {
-                        "type": "uri"
+                        "type": "string",
+                        "format": "uri"
                     }
                 },
                 "archiver_type": {
@@ -417,6 +418,7 @@
         }
     },
     "required": [
+        "name",
         "addresses",
         "host"
     ],
