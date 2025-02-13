@@ -1,0 +1,12 @@
+elasticsearch 
+fastapi
+fastapi-cli
+jsonschema
+opensearch-py
+opentelemetry-api 
+opentelemetry-sdk 
+opentelemetry-instrumentation 
+opentelemetry-instrumentation-fastapi 
+opentelemetry-instrumentation-elasticsearch 
+slowapi 
+uvicorn
