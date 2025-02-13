@@ -8,7 +8,7 @@ on:
     branches: [ '*' ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
-    paths: [ 'lookup-service-server/**', '!lookup-service-client/**' ]
+    paths: [ 'lookup-service-server/**', 'lookup-service-client/pslookup/perfsonar-pslookup/schema/schema.json', '.github/workflows/**' ]
 
   pull_request:
     branches: [ 'main' ]
@@ -17,7 +17,7 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_BASE: ${{ github.repository }}
-  BUILD_DIR: ./lookup-service-server
+  BUILD_DIR: .
 
 jobs:
   build:
@@ -70,7 +70,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ${{ env.BUILD_DIR }}
-          file: ${{ env.BUILD_DIR }}/Dockerfile
+          file: ${{ env.BUILD_DIR }}/lookup-service-server/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
