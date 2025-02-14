@@ -7,11 +7,11 @@
 systemd service is enabled upon installation and the pslookup client starts with default configurations.
 
 1. [Defaults](pslookup/perfsonar-pslookup/pslookup-config/pslookup-registration.conf) to using the localhost node exporter and perfsonar host exporter
-2. Client configuration - Modify the config file registration frequency and default paths for record configurations
+2. Client configuration - Modify the config file registration frequency and default paths for record configurations.<br />
     [/etc/perfsonar/pslookup/pslookup-registration.conf](pslookup/perfsonar-pslookup/pslookup-config/pslookup-registration.conf)
-3. Record configuration files - To provide data to overwrite or to add to the record. Replace nulls with the values to be placed in the record.
-**Defaults**
-    [/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/interfaces.json)
+3. Record configuration files - To provide data to overwrite or to add to the record. Replace nulls with the values to be placed in the record.<br />
+**Defaults**<br />
+    [/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/interfaces.json)<br />
     [/etc/perfsonar/pslookup/pslookup-record-conf/host.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/host.json)
 
 
@@ -32,14 +32,14 @@ To validate a record built manually, use the record option to point to the json 
 
 # Developer Settings:
 
-1. To modify Schema for record validation
+1. To modify Schema for record validation<br />
     [pslookup/perfsonar-pslookup/schema/schema.json](pslookup/perfsonar-pslookup/schema/schema.json)
 2. The python pslookup package utilizes symlink to the [schema.json](pslookup/perfsonar-pslookup/pslookup/schema/schema.json). Any modification to the schema will be reflected in both the client [package]((pslookup/perfsonar-pslookup/pslookup/schema/schema.json)) and [server](../lookup-service-server/schema/schema.json).
-3. Changes in the schema should be complimented with updates to the database mappings and vice versa.
+3. Changes in the schema should be complimented with updates to the database mappings and vice versa.<br />
     [lookup-service-server/app/mapping](../lookup-service-server/app/mapping/)
 4. Changes to the schema should also be implemented in the default [record configurations](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/).
 
-**Installing the client locally on Docker**
+**Installing the client locally on Docker**<br />
 Using [unibuild](https://github.com/perfsonar/unibuild)
 ```
 git clone https://github.com/perfsonar/pslookup-service.git
