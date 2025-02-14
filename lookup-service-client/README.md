@@ -8,42 +8,35 @@ systemd service is enabled upon installation and the pslookup client starts with
 
 1. [Defaults](pslookup/perfsonar-pslookup/pslookup-config/pslookup-registration.conf) to using the localhost node exporter and perfsonar host exporter
 2. Client configuration - Modify the config file registration frequency and default paths for record configurations
-```
-[/etc/perfsonar/pslookup/pslookup-registration.conf](pslookup/perfsonar-pslookup/pslookup-config/pslookup-registration.conf)
-```
+    [/etc/perfsonar/pslookup/pslookup-registration.conf](pslookup/perfsonar-pslookup/pslookup-config/pslookup-registration.conf)
 3. Record configuration files - To provide data to overwrite or to add to the record. Replace nulls with the values to be placed in the record.
-```
-Defaults
-[/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/interfaces.json)
-[/etc/perfsonar/pslookup/pslookup-record-conf/host.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/host.json)
-```
+**Defaults**
+    [/etc/perfsonar/pslookup/pslookup-record-conf/interfaces.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/interfaces.json)
+    [/etc/perfsonar/pslookup/pslookup-record-conf/host.json](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/host.json)
+
 
 # Validation Tool
 pslookup tool can be used to validate a record.
 ```
 pslookup validate
 ```
-***Customizing
+**Customizing**
 The validation tool allows to validate a record built by the pslookup service using the client config. This will utilize the service to build the record that will be registered and validate it against the schema.
 To validate a record built manually, use the record option to point to the json record. If this option is provided, config is ignored.
 
-        | Option | Type | Description |
-        | :----: | :--: | :---------: |
-        | config | String | Path to the client config file. Defaults to /etc/perfsonar/pslookup/pslookup-registration.conf |
-        | record | String | Path to the json record |
+| Option | Type | Description |
+| :----: | :--: | :---------: |
+| config | String | Path to the client config file. Defaults to /etc/perfsonar/pslookup/pslookup-registration.conf |
+| record | String | Path to the json record |
 
 
 # Developer Settings:
 
 1. To modify Schema for record validation
-```
-[pslookup/perfsonar-pslookup/schema/schema.json](pslookup/perfsonar-pslookup/schema/schema.json)
-```
+    [pslookup/perfsonar-pslookup/schema/schema.json](pslookup/perfsonar-pslookup/schema/schema.json)
 2. The python pslookup package utilizes symlink to the [schema.json](pslookup/perfsonar-pslookup/pslookup/schema/schema.json). Any modification to the schema will be reflected in both the client [package]((pslookup/perfsonar-pslookup/pslookup/schema/schema.json)) and [server](../lookup-service-server/schema/schema.json).
 3. Changes in the schema should be complimented with updates to the database mappings and vice versa.
-```
-[lookup-service-server/app/mapping](../lookup-service-server/app/mapping/)
-```
+    [lookup-service-server/app/mapping](../lookup-service-server/app/mapping/)
 4. Changes to the schema should also be implemented in the default [record configurations](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/).
 
 **Installing the client locally on Docker**
