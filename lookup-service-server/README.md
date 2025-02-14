@@ -32,7 +32,7 @@ The following environment variables are needed for the database connection.
 ```
 lookup-service-client/pslookup/perfsonar-pslookup/schema/schema.json
 ```
-2. Any modification to the schema will be reflected in both the client package and server.
+2. Any modification to the schema will be reflected in both the [client package](../lookup-service-client/pslookup/perfsonar-pslookup/pslookup/schema/schema.json) and [server](/lookup-service-server/schema/schema.json).
 3. Changes in the schema should be complimented with updates to the database mappings and vice versa.
 ```
 lookup-service-server/app/mapping
