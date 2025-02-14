@@ -34,7 +34,7 @@ To validate a record built manually, use the record option to point to the json 
 
 1. To modify Schema for record validation<br />
     [pslookup/perfsonar-pslookup/schema/schema.json](pslookup/perfsonar-pslookup/schema/schema.json)
-2. The python pslookup package utilizes symlink to the [schema.json](pslookup/perfsonar-pslookup/pslookup/schema/schema.json). Any modification to the schema will be reflected in both the client [package]((pslookup/perfsonar-pslookup/pslookup/schema/schema.json)) and [server](../lookup-service-server/schema/schema.json).
+2. The python pslookup package utilizes symlink to the [schema.json](pslookup/perfsonar-pslookup/pslookup/schema/schema.json). Any modification to the schema will be reflected in both the client [package](pslookup/perfsonar-pslookup/pslookup/schema/schema.json) and [server](../lookup-service-server/schema/schema.json).
 3. Changes in the schema should be complimented with updates to the database mappings and vice versa.<br />
     [lookup-service-server/app/mapping](../lookup-service-server/app/mapping/)
 4. Changes to the schema should also be implemented in the default [record configurations](pslookup/perfsonar-pslookup/pslookup-config/pslookup-record-conf/).
