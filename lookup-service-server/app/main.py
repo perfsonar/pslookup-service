@@ -1,8 +1,4 @@
 from fastapi import FastAPI
-
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_ipaddr
-from slowapi.errors import RateLimitExceeded
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
@@ -12,10 +8,6 @@ from opentelemetry.instrumentation.elasticsearch import ElasticsearchInstrumento
 from .routers import records
 
 app = FastAPI()
-
-limiter = Limiter(key_func=get_ipaddr)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Acquire a tracer
 trace.set_tracer_provider(TracerProvider())
