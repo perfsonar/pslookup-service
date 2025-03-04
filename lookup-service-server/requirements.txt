@@ -8,5 +8,5 @@ opentelemetry-sdk
 opentelemetry-instrumentation 
 opentelemetry-instrumentation-fastapi 
 opentelemetry-instrumentation-elasticsearch 
-slowapi 
+opentelemetry-exporter-otlp-proto-http 
 uvicorn
