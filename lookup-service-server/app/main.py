@@ -15,8 +15,8 @@ app = FastAPI()
 trace.set_tracer_provider(TracerProvider())
 tracer = trace.get_tracer(__name__)
 
-if os.getenv('OTEL_APM_EXPORT'):
-    trace_exporter = OTLPSpanExporter(endpoint="http://localhost:4318")
+if os.getenv('OTEL_COLLECTOR_ENDPOINT'):
+    trace_exporter = OTLPSpanExporter(endpoint="http://{}:4318".format(os.getenv('OTEL_COLLECTOR_ENDPOINT')))
 else:
     trace_exporter = ConsoleSpanExporter()
 trace.get_tracer_provider().add_span_processor(
