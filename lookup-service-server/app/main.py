@@ -16,7 +16,7 @@ trace.set_tracer_provider(TracerProvider())
 tracer = trace.get_tracer(__name__)
 
 if os.getenv('OTEL_COLLECTOR_ENDPOINT'):
-    trace_exporter = OTLPSpanExporter(endpoint="http://{}:4318".format(os.getenv('OTEL_COLLECTOR_ENDPOINT')))
+    trace_exporter = OTLPSpanExporter(endpoint="http://{}:4318/v1/traces".format(os.getenv('OTEL_COLLECTOR_ENDPOINT')))
 else:
     trace_exporter = ConsoleSpanExporter()
 trace.get_tracer_provider().add_span_processor(
