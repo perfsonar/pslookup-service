@@ -66,15 +66,6 @@ def post_to_opensearch(record):
         #Generate record id
         record_id = map_record_id(record)
 
-        #Delete record if exists
-        try:
-            resp = os_client.delete(index=os.environ['OS_INDEX'], id=record_id)
-            if not resp.get('result') == 'deleted':
-                logger.debug('record with id {} not deleted'.format(record_id))
-        except opensearchpy.exceptions.NotFoundError:
-            logger.debug('Record id - {} not found for deletion. Proceeding to add the record'.format(record_id))
-            pass
-
         #Create the record
         resp = os_client.index(index=os.environ['OS_INDEX'], body=record, id=record_id, refresh=True)
         logger.info('Record with id {} submitted for creation with the result {}'.format(record_id, resp))
@@ -122,15 +113,6 @@ def post_to_elastic(record):
 
         #Generate record id
         record_id = map_record_id(record)
-
-        #Delete record if exists
-        try:
-            resp = esclient.delete(index=os.environ['ELASTIC_INDEX'], id=record_id)
-            if not resp.get('result') == 'deleted':
-                logger.debug('record with id {} not deleted'.format(record_id))
-        except elasticsearch.NotFoundError:
-            logger.debug('Record id - {} not found for deletion. Proceeding to add the record'.format(record_id))
-            pass
 
         #Create the record
         resp = esclient.index(index=os.environ['ELASTIC_INDEX'], document=record, id=record_id)

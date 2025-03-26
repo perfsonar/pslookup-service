@@ -16,7 +16,15 @@ trace.set_tracer_provider(TracerProvider())
 tracer = trace.get_tracer(__name__)
 
 if os.getenv('OTEL_COLLECTOR_ENDPOINT'):
-    trace_exporter = OTLPSpanExporter(endpoint="http://{}:4318/v1/traces".format(os.getenv('OTEL_COLLECTOR_ENDPOINT')))
+    trace_exporter = OTLPSpanExporter(endpoint="{}/v1/traces".format(os.getenv('OTEL_COLLECTOR_ENDPOINT')),
+                                      certificate_file=os.getenv('OTEL_COLLECTOR_CERT'), 
+                                      client_key_file=os.getenv('OTEL_COLLECTOR_CLIENT_KEY'), 
+                                      client_certificate_file=os.getenv('OTEL_COLLECTOR_CLIENT_CERT'), 
+                                      headers=os.getenv('OTEL_COLLECTOR_HEADERS'), 
+                                      timeout=os.getenv('OTEL_COLLECTOR_TIMEOUT'), 
+                                      compression=os.getenv('OTEL_COLLECTOR_COMPRESSION'), 
+                                      session=os.getenv('OTEL_COLLECTOR_SESSION')
+                                      )
 else:
     trace_exporter = ConsoleSpanExporter()
 trace.get_tracer_provider().add_span_processor(
