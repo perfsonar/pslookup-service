@@ -8,5 +8,5 @@ validation = RecordValidation()
 
 @router.post("/lookup/records/")
 def register_v1_record(request: Request, response: Response, registration_record: dict):
-
+    print(request)
     return request
