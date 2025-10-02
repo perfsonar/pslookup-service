@@ -7,6 +7,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.elasticsearch import ElasticsearchInstrumentor
 from .routers import records
+from .routers import backward_record
 import os
 
 app = FastAPI()
@@ -33,3 +34,4 @@ FastAPIInstrumentor().instrument_app(app)
 ElasticsearchInstrumentor().instrument()
 
 app.include_router(records.router)
+app.include_router(backward_record.router)
