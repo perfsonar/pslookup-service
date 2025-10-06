@@ -7,7 +7,7 @@ router = APIRouter()
 validation = RecordValidation()
 
 @router.post("/lookup/records/")
-def register_v1_record(request: Request, response: Response, registration_record: dict):
+def register_v1_record(request: Request):
     print(f"Request: {request.method} {request.url}")
     try : 
         print("request json         : {}".format(request.json()))
