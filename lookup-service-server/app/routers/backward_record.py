@@ -7,11 +7,6 @@ router = APIRouter()
 validation = RecordValidation()
 
 @router.post("/lookup/records/")
-def register_v1_record(request: Request):
-    print(f"Request: {request.method} {request.url}")
-    try : 
-        print("request json         : {}".format(request.json()))
-    except Exception as err:
-        # could not parse json
-        print("request body         : {}".format(request.body()))
-    return request
+def register_v1_record(message):
+    print(message)
+    return
