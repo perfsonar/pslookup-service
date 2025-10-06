@@ -6,7 +6,7 @@ import os
 router = APIRouter()
 validation = RecordValidation()
 
-@router.post("/lookup/records/")
-def register_v1_record(message):
+@router.post("/lookup/records")
+def register_v1_record(message: dict):
     print(message)
     return
