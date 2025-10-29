@@ -41,7 +41,7 @@ def register_v1_record(message: dict):
 
             for key in key_values:
                 if not is_ignore_key(key):
-                    logger.debug("key-value pair:" + key + "=" + key_values.get(key))
+                    logger.debug("key-value pair:" + key + "=" + str(key_values.get(key)))
                     operators.add(key, ReservedValues.RECORD_OPERATOR_ALL)
                     query.add(key, key_values.get(key))
 
@@ -49,7 +49,7 @@ def register_v1_record(message: dict):
             try:
                 response = db.query_and_publish_service(request, query, operators)
             except Exception as e:
-                logger.error("Error registerting the record {}".format(request.get_map()))
+                logger.error("Error registerting the record {}".format(str(request.get_map())))
                 raise Exception(e)
 
             return response

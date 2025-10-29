@@ -225,9 +225,9 @@ class ServiceElasticSearch:
         """
         try:
             resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=message)
-            logger.info('Record with URI {} submitted for creation with the result {}'.format(message.get_URI(), resp))
+            logger.info('Record with URI {} submitted for creation with the result {}'.format(message.get_URI(), str(resp)))
         except Exception as e:
-            logger.error ("Error inserting message: {}".format(message))
+            logger.error ("Error inserting message: {}".format(str(message.get_map())))
             raise Exception(e)
 
     def add_time_stamp(self, message):
