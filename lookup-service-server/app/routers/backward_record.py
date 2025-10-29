@@ -15,11 +15,11 @@ validation = RecordValidation()
 logger = logging.getLogger(__name__)
 
 @router.post("/{lookup}/records")
-def register_v1_record(message: dict):
+def register_v1_record(record: dict):
     logger.info(" Processing register service.")
-    logger.info(" Received message: " + str(message))
+    logger.info(" Received message: " + str(record))
 
-    request = JsonRegisterRequest(message)
+    request = JsonRegisterRequest(record)
 
     if is_valid(request):
         # Request Lease

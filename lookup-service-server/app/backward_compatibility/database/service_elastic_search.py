@@ -152,9 +152,6 @@ class ServiceElasticSearch:
         Number of hits
         '''
 
-        logger.debug("operator: " + str(operators.get_map()))
-        logger.debug("query_request: " + str(query_request.get_map()))
-
         operator = operators.get_map().get("operator")
         search_request = self.build_elastic_search_request(query_request.get_map(), operator)
 
@@ -168,7 +165,7 @@ class ServiceElasticSearch:
         return num_hits
 
 
-    def query_and_publish_service(self, message, query_request, operators):
+    def query_and_publish_service(self, record, query_request, operators):
         """
         Inserts record into database. The method checks if a record exists before
         inserting it into the database.
@@ -187,6 +184,10 @@ class ServiceElasticSearch:
             if database already contains the record that is being added
         DatabaseException
         """
+        logger.debug("operator: " + str(operators.get_map()))
+        logger.debug("query_request: " + str(query_request.get_map()))
+        logger.debug("record: " + str(record.get_map()))
+
         try:
             logger.debug("Running query for duplicates")
             num_dup_entries = self.query(query_request, operators)
@@ -196,7 +197,7 @@ class ServiceElasticSearch:
             logger.error("Error inserting record")
             raise Exception(e)
         
-        timestamped_message = self.add_time_stamp(message)
+        timestamped_message = self.add_time_stamp(record)
         self.insert(timestamped_message)
         return_message = self.remove_ls_added_fields(timestamped_message)
         logger.info("Insert Successful")
@@ -204,9 +205,9 @@ class ServiceElasticSearch:
         return return_message
 
 
-    def remove_ls_added_fields(self, message):
-        if message:
-            message_map = copy.deepcopy(message.get_map())
+    def remove_ls_added_fields(self, record):
+        if record:
+            message_map = copy.deepcopy(record.get_map())
             if 'id' in message_map:
                 del message_map['_id']
             if '_lastUpdated' in message_map:
@@ -216,7 +217,7 @@ class ServiceElasticSearch:
 
         return Message(message_map)
 
-    def insert(self, message):
+    def insert(self, record):
         """
         Inserts message into database
 
@@ -225,13 +226,13 @@ class ServiceElasticSearch:
         message message to be inserted into database
         """
         try:
-            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=message.get_map())
-            logger.info('Record with URI {} submitted for creation with the result {}'.format(message.get_URI(), str(resp)))
+            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=record.get_map())
+            logger.info('Record with URI {} submitted for creation with the result {}'.format(record.get_URI(), str(resp)))
         except Exception as e:
-            logger.error ("Error inserting message: {}".format(str(message.get_map())))
+            logger.error ("Error inserting message: {}".format(str(record.get_map())))
             raise Exception(e)
 
-    def add_time_stamp(self, message):
+    def add_time_stamp(self, record):
         """
         Adds a timestamp and a lastupdated field to a given message
         Parameters
@@ -243,6 +244,6 @@ class ServiceElasticSearch:
         message with the timestamp and lastupdated field
 
         """
-        message.add("_lastUpdated", datetime.now(timezone.utc).isoformat())
-        return message
+        record.add("_lastUpdated", datetime.now(timezone.utc).isoformat())
+        return record
         
