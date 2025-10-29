@@ -152,8 +152,8 @@ class ServiceElasticSearch:
         Number of hits
         '''
 
-        logger.debug("operator: " + str(operators))
-        logger.debug("query_request: " + str(query_request))
+        logger.debug("operator: " + str(operators.get_map()))
+        logger.debug("query_request: " + str(query_request.get_map()))
 
         operator = operators.get_map().get("operator")
         search_request = self.build_elastic_search_request(query_request.get_map(), operator)
