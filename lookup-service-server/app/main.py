@@ -16,6 +16,7 @@ import logging
 app = FastAPI()
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Acquire a tracer
 #trace.set_tracer_provider(TracerProvider())

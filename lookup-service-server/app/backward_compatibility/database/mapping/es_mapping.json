@@ -12,6 +12,9 @@
     "properties":{
         "expires":{
             "type": "date"
+        },
+        "_lastUpdated":{
+            "type": "date"
         }
     }
 }
