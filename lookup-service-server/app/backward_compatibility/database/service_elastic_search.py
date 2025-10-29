@@ -4,7 +4,7 @@ import ssl
 from fastapi import HTTPException
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import copy
 from ..message import Message
 
@@ -240,6 +240,6 @@ class ServiceElasticSearch:
         message with the timestamp and lastupdated field
 
         """
-        message.add("_lastUpdated", datetime.now().isoformat())
+        message.add("_lastUpdated", datetime.now(timezone.utc).isoformat())
         return message
         

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import isodate
 import logging
 from .reserved_keys import ReservedKeys
@@ -23,7 +23,7 @@ def request_lease(message):
     if (not requested_TTL) or (ttl == 0) or (ttl > MAX_LEASE) or (ttl < MIN_LEASE):
         ttl = DEFAULT_LEASE
     
-    new_expires = datetime.now() + timedelta(seconds=ttl)
+    new_expires = datetime.now(timezone.utc) + timedelta(seconds=ttl)
     logger.info("Lease granted. ttl value: " + str(ttl))
     message.add(ReservedKeys.RECORD_EXPIRES, new_expires.isoformat())
     logger.info("Lease granted. expires value: " + str(new_expires.isoformat()))
