@@ -38,6 +38,9 @@ def register_v1_record(record: dict):
             operators.add(ReservedKeys.RECORD_OPERATOR, ReservedValues.RECORD_OPERATOR_ALL)
 
             key_values = request.get_map()
+            logger.debug("declared operator: " + str(operators.get_map()))
+            logger.debug("declared query_request: " + str(query.get_map()))
+            logger.debug("declared record: " + str(request.get_map()))
 
             for key in key_values:
                 if not is_ignore_key(key):
