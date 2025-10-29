@@ -152,7 +152,7 @@ class ServiceElasticSearch:
         Number of hits
         '''
 
-        logger.debug("operator: " + str(operator))
+        logger.debug("operator: " + str(operators))
         logger.debug("query_request: " + str(operator))
 
         operator = operators.get_map().get("operator")
