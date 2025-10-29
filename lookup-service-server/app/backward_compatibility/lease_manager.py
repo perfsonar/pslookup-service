@@ -24,9 +24,9 @@ def request_lease(message):
         ttl = DEFAULT_LEASE
     
     new_expires = datetime.now() + timedelta(seconds=ttl)
-    logger.info("Lease granted. ttl value: " + ttl)
+    logger.info("Lease granted. ttl value: " + str(ttl))
     message.add(ReservedKeys.RECORD_EXPIRES, new_expires.isoformat())
-    logger.info("Lease granted. expires value: " + new_expires.isoformat())
+    logger.info("Lease granted. expires value: " + str(new_expires.isoformat()))
 
     return True
 
