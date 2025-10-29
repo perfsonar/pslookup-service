@@ -153,7 +153,7 @@ class ServiceElasticSearch:
         '''
 
         logger.debug("operator: " + str(operators))
-        logger.debug("query_request: " + str(operator))
+        logger.debug("query_request: " + str(query_request))
 
         operator = operators.get_map().get("operator")
         search_request = self.build_elastic_search_request(query_request.get_map(), operator)
