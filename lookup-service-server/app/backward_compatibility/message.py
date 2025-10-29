@@ -2,8 +2,8 @@ from .reserved_keys import ReservedKeys
 
 class Message:
 
-    def __init__(self, message={}):
-        self.key_values = message
+    def __init__(self, record={}):
+        self.key_values = record
         self.status = 0
 
     def get_map(self):
@@ -97,7 +97,7 @@ class Message:
                 return_val = return_val and True
             elif type(self.key_values[key]) is list:
                 for element in self.key_values[key]:
-                    if type(self.key_values[key]) is not str:
+                    if type(self.key_values[key][element]) is not str:
                         return_val = return_val and False
             else:
                 return_val = False
