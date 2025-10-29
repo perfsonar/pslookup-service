@@ -44,6 +44,10 @@ def register_v1_record(record: dict):
                     logger.debug("key-value pair:" + key + "=" + str(key_values.get(key)))
                     operators.add(key, ReservedValues.RECORD_OPERATOR_ALL)
                     query.add(key, key_values.get(key))
+            
+            logger.debug("operator: " + str(operators.get_map()))
+            logger.debug("query_request: " + str(query.get_map()))
+            logger.debug("record: " + str(request.get_map()))
 
             db = ServiceElasticSearch()
             try:

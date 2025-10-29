@@ -184,9 +184,6 @@ class ServiceElasticSearch:
             if database already contains the record that is being added
         DatabaseException
         """
-        logger.debug("operator: " + str(operators.get_map()))
-        logger.debug("query_request: " + str(query_request.get_map()))
-        logger.debug("record: " + str(record.get_map()))
 
         try:
             logger.debug("Running query for duplicates")
