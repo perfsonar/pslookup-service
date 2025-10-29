@@ -15,12 +15,7 @@ class ServiceElasticSearch:
     instance = None
     esclient = None
 
-    def __init__(self, dburl: str, dbport1: int, dbport2: int, dbname: str):
-        #ServiceElasticSearch.location = dburl
-        #ServiceElasticSearch.port1 = dbport1
-        #ServiceElasticSearch.port2 = dbport2
-        #ServiceElasticSearch.index_name = dbname
-        #ServiceElasticSearch.index_mapping = ""
+    def __init__(self):
         self.init()
 
     def create_index(self):
