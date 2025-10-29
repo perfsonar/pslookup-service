@@ -195,7 +195,10 @@ class ServiceElasticSearch:
         
         timestamped_message = self.add_time_stamp(message)
         self.insert(timestamped_message)
-        return self.remove_ls_added_fields(timestamped_message)
+        return_message = self.remove_ls_added_fields(timestamped_message)
+        logger.info("Insert Successful")
+        logger.info(return_message)
+        return return_message
 
 
     def remove_ls_added_fields(self, message):
@@ -219,7 +222,7 @@ class ServiceElasticSearch:
         message message to be inserted into database
         """
         try:
-            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=message)
+            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=message.get_map())
             logger.info('Record with URI {} submitted for creation with the result {}'.format(message.get_URI(), str(resp)))
         except Exception as e:
             logger.error ("Error inserting message: {}".format(str(message.get_map())))
