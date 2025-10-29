@@ -9,8 +9,13 @@ from opentelemetry.instrumentation.elasticsearch import ElasticsearchInstrumento
 from .routers import records
 from .routers import backward_record
 import os
+import logging
+
+
 
 app = FastAPI()
+
+logger = logging.getLogger(__name__)
 
 # Acquire a tracer
 #trace.set_tracer_provider(TracerProvider())
