@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timezone
 import copy
 from ..message import Message
+from ..reserved_keys import ReservedKeys
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,9 @@ class ServiceElasticSearch:
                     search_request['query']['bool'] = search_request.get('query').get('bool', {})
                     search_request['query']['bool']['must'] = search_request.get('query').get('bool').get('must', [])
                 if type(value) is str:
+                    #if key_as_string == ReservedKeys.RECORD_EXPIRES:
+                    #    search_request['query']['bool']['must'].append({"range":{key_as_string: {"gte": value}}})
+                    #else:
                     if "*" in value:
                         regex_string = self.process_wild_card_pattern(value)
                         search_request['query']['bool']['must'].append({"regexp":{key_as_string: regex_string}})
@@ -121,6 +125,8 @@ class ServiceElasticSearch:
                         else:
                             search_request['query']['bool']['should'].append({"match":{key_as_string: str_val}})
 
+        search_request['sort'] = [{"_lastUpdated":{"order": "desc"}}]
+
         logger.debug("Built record to search {}".format(search_request.__str__()))
 
         return search_request
@@ -153,6 +159,7 @@ class ServiceElasticSearch:
         '''
 
         operator = operators.get_map().get("operator")
+        
         search_request = self.build_elastic_search_request(query_request.get_map(), operator)
 
         response = ServiceElasticSearch.esclient.search(
@@ -162,7 +169,7 @@ class ServiceElasticSearch:
 
         num_hits = int(response["hits"]["total"]["value"])
 
-        return num_hits
+        return num_hits, response["hits"]["hits"]
 
 
     def query_and_publish_service(self, record, query_request, operators):
@@ -185,26 +192,43 @@ class ServiceElasticSearch:
         DatabaseException
         """
 
+        record_id = None
         try:
             logger.debug("Running query for duplicates")
-            num_dup_entries = self.query(query_request, operators)
-            if num_dup_entries > 0:
-                raise Exception("Record already exists.")
+            num_dup_entries, response_hit = self.query(query_request, operators)
+            new_record_expiry = record.get_key(ReservedKeys.RECORD_EXPIRES)
+            if num_dup_entries > 0 and response_hit[0]['_source'][ReservedKeys.RECORD_EXPIRES] >= new_record_expiry:
+                # Record exists with expiry date beyond the new expiry
+                # raise Exception("Record already exists.")
+                logger.info("Record already exists. Returning existing record from db.")
+                return self.remove_ls_added_fields(response_hit[0]['_source'])
+            elif num_dup_entries > 0:
+                # Record exists but expiring before the new expiry
+                # Use the retrived record since it contains the id to replace the document in elastic
+                logger.info("Record already exists with earlier expiry. reregistering the record with new expiry.")
+                
+                record = Message(response_hit[0]['_source'])
+                # Update the expiry
+                record.add(ReservedKeys.RECORD_EXPIRES, new_record_expiry)
+                # Add the document id to the record (to overwrite the document in elastic)
+                record_id = response_hit[0]["_id"]
+
         except Exception as e:
-            logger.error("Error inserting record")
+            logger.error("Error checking if record exists")
             raise Exception(e)
-        
+
         timestamped_message = self.add_time_stamp(record)
-        self.insert(timestamped_message)
-        return_message = self.remove_ls_added_fields(timestamped_message)
+        logger.debug("Record to submit: " + str(timestamped_message.get_map()))
+        self.insert(timestamped_message, record_id)
+        return_message = self.remove_ls_added_fields(timestamped_message.get_map())
         logger.info("Insert Successful")
-        logger.info(return_message)
+        logger.debug(return_message)
         return return_message
 
 
-    def remove_ls_added_fields(self, record):
-        if record:
-            message_map = copy.deepcopy(record.get_map())
+    def remove_ls_added_fields(self, record_map):
+        if record_map:
+            message_map = copy.deepcopy(record_map)
             if 'id' in message_map:
                 del message_map['_id']
             if '_lastUpdated' in message_map:
@@ -212,9 +236,9 @@ class ServiceElasticSearch:
         else:
             message_map = {}
 
-        return Message(message_map)
+        return message_map
 
-    def insert(self, record):
+    def insert(self, record, record_id=None):
         """
         Inserts message into database
 
@@ -223,7 +247,7 @@ class ServiceElasticSearch:
         message message to be inserted into database
         """
         try:
-            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=record.get_map())
+            resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=record.get_map(), id=record_id)
             logger.info('Record with URI {} submitted for creation with the result {}'.format(record.get_URI(), str(resp)))
         except Exception as e:
             logger.error ("Error inserting message: {}".format(str(record.get_map())))

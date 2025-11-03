@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @router.post("/{lookup}/records")
 def register_v1_record(record: dict):
     logger.info(" Processing register service.")
-    logger.info(" Received message: " + str(record))
+    logger.debug(" Received message: " + str(record))
 
     request = JsonRegisterRequest(record)
 
@@ -38,19 +38,12 @@ def register_v1_record(record: dict):
             operators.add(ReservedKeys.RECORD_OPERATOR, ReservedValues.RECORD_OPERATOR_ALL)
 
             key_values = request.get_map()
-            logger.debug("declared operator: " + str(operators.get_map()))
-            logger.debug("declared query_request: " + str(query.get_map()))
-            logger.debug("declared record: " + str(request.get_map()))
 
             for key in key_values:
                 if not is_ignore_key(key):
                     logger.debug("key-value pair:" + key + "=" + str(key_values.get(key)))
                     operators.add(key, ReservedValues.RECORD_OPERATOR_ALL)
                     query.add(key, key_values.get(key))
-            
-            logger.debug("operator: " + str(operators.get_map()))
-            logger.debug("query_request: " + str(query.get_map()))
-            logger.debug("record: " + str(request.get_map()))
 
             db = ServiceElasticSearch()
             try:
@@ -80,7 +73,7 @@ def new_uri(record_type: str):
         logger.error(e)
 
 def is_ignore_key(key: str):
-    if key in [ReservedKeys.RECORD_TTL, ReservedKeys.RECORD_EXPIRES, ReservedKeys.RECORD_URI, ReservedKeys.RECORD_STATE]:
+    if key in [ReservedKeys.RECORD_TTL, ReservedKeys.RECORD_URI, ReservedKeys.RECORD_STATE, ReservedKeys.RECORD_EXPIRES]:
         return True
     else:
         return False
