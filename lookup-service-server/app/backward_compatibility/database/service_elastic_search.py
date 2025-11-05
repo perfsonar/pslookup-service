@@ -179,11 +179,11 @@ class ServiceElasticSearch:
 
         Parameters
         ----------
-        message record to be added to the database
+        record record to be added to the database
 
         Returns
         ----------
-        Message that was added to the database
+        record that was added to the database
 
         Raises
         ----------
@@ -196,22 +196,27 @@ class ServiceElasticSearch:
         try:
             logger.debug("Running query for duplicates")
             num_dup_entries, response_hit = self.query(query_request, operators)
-            new_record_expiry = record.get_key(ReservedKeys.RECORD_EXPIRES)
-            if num_dup_entries > 0 and response_hit[0]['_source'][ReservedKeys.RECORD_EXPIRES] >= new_record_expiry:
-                # Record exists with expiry date beyond the new expiry
-                # raise Exception("Record already exists.")
-                logger.info("Record already exists. Returning existing record from db.")
-                return self.remove_ls_added_fields(response_hit[0]['_source'])
-            elif num_dup_entries > 0:
-                # Record exists but expiring before the new expiry
-                # Use the retrived record since it contains the id to replace the document in elastic
-                logger.info("Record already exists with earlier expiry. reregistering the record with new expiry.")
-                
-                record = Message(response_hit[0]['_source'])
-                # Update the expiry
-                record.add(ReservedKeys.RECORD_EXPIRES, new_record_expiry)
-                # Add the document id to the record (to overwrite the document in elastic)
+            #new_record_expiry = record.get_key(ReservedKeys.RECORD_EXPIRES)
+            if num_dup_entries > 0:
+                logger.info("Record already exists. Rewriting the record with the new incoming record.")
                 record_id = response_hit[0]["_id"]
+
+            #if num_dup_entries > 0 and response_hit[0]['_source'][ReservedKeys.RECORD_EXPIRES] >= new_record_expiry:
+            #    # Record exists with expiry date beyond the new expiry
+            #    logger.info("Record already exists. Returning existing record from db.")
+
+            #    # Return the same document from elastic
+            #    return self.remove_ls_added_fields(response_hit[0]['_source'])
+            #elif num_dup_entries > 0:
+            #    # Record exists but expiring before the new expiry
+            #    # Use the retrived record since it contains the id to replace the document in elastic
+            #    logger.info("Record already exists with earlier expiry. reregistering the record with new expiry.")
+                
+            #    record = Message(response_hit[0]['_source'])
+            #    # Update the expiry
+            #    record.add(ReservedKeys.RECORD_EXPIRES, new_record_expiry)
+            #    # Add the document id to the record (to overwrite the document in elastic)
+            #    record_id = response_hit[0]["_id"]
 
         except Exception as e:
             logger.error("Error checking if record exists")
@@ -244,7 +249,7 @@ class ServiceElasticSearch:
 
         Parameters
         ----------
-        message message to be inserted into database
+        record message to be inserted into database
         """
         try:
             resp = ServiceElasticSearch.esclient.index(index=os.environ['ELASTIC_V1_INDEX'], document=record.get_map(), id=record_id)
@@ -258,11 +263,11 @@ class ServiceElasticSearch:
         Adds a timestamp and a lastupdated field to a given message
         Parameters
         ----------
-        message message to which timestamp is to be added
+        record message to which timestamp is to be added
 
         Returns
         ----------
-        message with the timestamp and lastupdated field
+        record with the timestamp and lastupdated field
 
         """
         record.add("_lastUpdated", datetime.now(timezone.utc).isoformat())

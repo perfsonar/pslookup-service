@@ -16,3 +16,5 @@ lookup-service-client/pslookup/perfsonar-pslookup/.DS_Store
 lookup-service-client/pslookup/perfsonar-pslookup/pslookup/.DS_Store
 .DS_Store
 unibuild-repo
+lookup-service-server/app/backward_compatibility/__pycache__
+lookup-service-server/app/backward_compatibility/database/__pycache__
