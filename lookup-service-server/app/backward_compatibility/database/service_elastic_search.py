@@ -200,6 +200,8 @@ class ServiceElasticSearch:
             if num_dup_entries > 0:
                 logger.info("Record already exists. Rewriting the record with the new incoming record.")
                 record_id = response_hit[0]["_id"]
+                # Update the record uri with the one from db so it does not go into loop with creating new 
+                record.add(ReservedKeys.RECORD_URI, response_hit[0]['_source'].get(ReservedKeys.RECORD_URI))
 
             #if num_dup_entries > 0 and response_hit[0]['_source'][ReservedKeys.RECORD_EXPIRES] >= new_record_expiry:
             #    # Record exists with expiry date beyond the new expiry
