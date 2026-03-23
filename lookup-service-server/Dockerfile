@@ -8,9 +8,14 @@ WORKDIR /usr/src/app/lookup-service-server
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Upgrade packages
 RUN apt-get update --yes
-
 RUN apt-get upgrade --yes
+
+# Add service user and switch to user
+RUN useradd --create-home apiserviceuser && \
+    chown -R apiserviceuser:apiserviceuser /usr/src/app
+USER apiserviceuser
 
 EXPOSE 8000
 
