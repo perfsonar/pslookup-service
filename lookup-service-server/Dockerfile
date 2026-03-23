@@ -13,9 +13,9 @@ RUN apt-get update --yes
 RUN apt-get upgrade --yes
 
 # Add service user and switch to user
-RUN useradd --create-home apiserviceuser && \
-    chown -R apiserviceuser:apiserviceuser /usr/src/app
-USER apiserviceuser
+#RUN useradd --create-home apiserviceuser && \
+#    chown -R apiserviceuser:apiserviceuser /usr/src/app
+#USER apiserviceuser
 
 EXPOSE 8000
 
