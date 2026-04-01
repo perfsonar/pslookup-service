@@ -1,7 +1,7 @@
-from .database.service_elastic_search import ServiceElasticSearch
-from .message import Message
-from .reserved_keys import ReservedKeys
-from .reserved_values import ReservedValues
+from app.backward_compatibility.database.service_elastic_search import ServiceElasticSearch
+from app.backward_compatibility.message import Message
+from app.backward_compatibility.reserved_keys import ReservedKeys
+from app.backward_compatibility.reserved_values import ReservedValues
 import requests
 import logging
 import time
