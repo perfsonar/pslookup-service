@@ -13,7 +13,7 @@ def interface_builder(interface_record):
 
     # Ignore the expires since they are defaulted to 1 day
     if interface_record.get('interface-capacity', [None])[0]:
-        new_interface_record['capacity'] = interface_record.get('interface-capacity', [None])[0]
+        new_interface_record['capacity'] = int(interface_record.get('interface-capacity', [None])[0])
     if interface_record.get('interface-name', [None])[0]:
         new_interface_record['name'] = interface_record.get('interface-name', [None])[0]
 
@@ -22,7 +22,7 @@ def interface_builder(interface_record):
     if interface_record.get('pscheduler-tests'):
         new_interface_record['pscheduler_tests'] = interface_record.get('pscheduler-tests', [None])
     if interface_record.get('interface-mtu', [None])[0]:
-        new_interface_record['mtu'] = interface_record.get('interface-mtu', [None])[0]
+        new_interface_record['mtu'] = int(interface_record.get('interface-mtu', [None])[0])
     if interface_record.get('interface-mac', [None])[0]:
         new_interface_record['mac'] = interface_record.get('interface-mac', [None])[0]
     # Add everything else to meta for debugging
@@ -108,8 +108,8 @@ def host_builder(host_record):
         new_host_record['os_kernel'] = host_record.get('host-os-kernel', [None])[0]
     if host_record.get('host-os-name', [None])[0]:
         new_host_record['os_name'] = host_record.get('host-os-name', [None])[0]
-    if host_record.get('host-hardware-processorspeed', [None])[0]:
-        new_host_record['processor_speed'] = host_record.get('host-hardware-processorspeed', [None])[0]
+    if host_record.get('host-hardware-processorspeed'):
+        new_host_record['processor_speed'] = host_record.get('host-hardware-processorspeed')
     if host_record.get('host-os-version', [None])[0]:
         new_host_record['os_version'] = host_record.get('host-os-version', [None])[0]
     if host_record.get('host-productname', [None])[0]:
@@ -147,7 +147,11 @@ def host_builder(host_record):
     if host_record.get('group-domains'):
         new_host_record['group_domains'] = host_record.get('group-domains', [None])
     if host_record.get('host-hardware-memory', [None])[0]:
-        new_host_record['memory_bytes'] = host_record.get('host-hardware-memory', [None])[0]
+        try:
+            new_host_record['memory_bytes'] = int(host_record.get('host-hardware-memory', [None])[0])
+        except Exception as e:
+            # Push it to meta
+            new_host_record['meta']['memory_bytes'] = host_record.get('host-hardware-memory', [None])[0]
     if host_record.get('pshost-role', [None])[0]:
         new_host_record['role'] = host_record.get('pshost-role', [None])[0]
     if host_record.get('group-communities'):
@@ -436,7 +440,7 @@ def build_register():
 
                 # Make a call to new server with the built record
 
-                register_response = requests.post('http://ls.perfsonar.net/record/', data=built_record)
+                register_response = requests.post('http://ls.perfsonar.net/record/', json=built_record)
                 
                 logger.info("Register record response: {}".format(register_response.json()))
 

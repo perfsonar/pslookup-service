@@ -19,7 +19,7 @@
             "type": "date"
         },
         "capacity": {
-            "type": "integer"
+            "type": "long"
         },
         "name": {
             "type": "keyword"
@@ -58,7 +58,7 @@
                     "type": "keyword"
                 },
                 "processor_speed": {
-                    "type": "long"
+                    "type": "keyword"
                 },
                 "os_version": {
                     "type": "keyword"
