@@ -8,6 +8,8 @@ WORKDIR /usr/src/app/lookup-service-server
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN mkdir -p /var/log/perfsonar
+
 # Upgrade packages
 RUN apt-get update --yes
 RUN apt-get upgrade --yes

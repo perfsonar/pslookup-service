@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger.info("Starting the record conversion process to latest mapping")
 process = subprocess.Popen(['python3', 'app/schedule_job.py'],
                     stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE, #open('/var/log/perfsonar/pslookup-backward-compatibility-agent.log', 'w')
+                    stdout=open('/var/log/perfsonar/pslookup-backward-compatibility-agent.log', 'w')
                     stderr=subprocess.STDOUT,
                     start_new_session=True,
                     preexec_fn=(lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
