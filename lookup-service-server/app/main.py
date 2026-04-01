@@ -16,7 +16,7 @@ import subprocess, signal
 app = FastAPI()
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 logger.info("Starting the record conversion process to latest mapping")
