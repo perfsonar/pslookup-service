@@ -396,11 +396,13 @@ def build_register():
 
             for service_record in service_records:
                 service_part_record = service_builder(service_record.get('_source', {}))
-                service_type = service_part_record.get('meta', {}).get('service_type', None)
-                if service_type == "ma":
-                    archive_services.append(service_part_record)
-                elif service_type == "pscheduler":
-                    pscheduler_services.append(service_part_record)
+                # service_part_record is None if the service type is not ma or pscheduler
+                if service_part_record:
+                    service_type = service_part_record.get('meta', {}).get('service_type', None)
+                    if service_type == "ma":
+                        archive_services.append(service_part_record)
+                    elif service_type == "pscheduler":
+                        pscheduler_services.append(service_part_record)
             
             # Add services to host record
             # The original Ls registration client sends registers each service multiple times.
