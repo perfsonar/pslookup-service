@@ -15,8 +15,12 @@ class ReservedValues:
    
    # operator values
    RECORD_OPERATOR_ALL = "all"
+   RECORD_OPERATOR_LESS_THAN = "less"
+   RECORD_OPERATOR_GREATER_THAN = "greater"
+   RECORD_OPERATOR_EXISTS = "exists"
    RECORD_OPERATOR_ANY = "any"
    RECORD_OPERATOR_DEFAULT = RECORD_OPERATOR_ALL
+   
 
    RECORD_VALUE_TYPE_ERROR = "error"
    

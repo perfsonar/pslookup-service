@@ -10,13 +10,25 @@ from .routers import records
 from .routers import backward_record
 import os
 import logging
-
+import subprocess, signal
 
 
 app = FastAPI()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+
+logger.info("Starting the record conversion process to latest mapping")
+process = subprocess.Popen(['python3', 'backward_compatibility/schedule_job.py'],
+                    stdin=subprocess.DEVNULL,
+                    stdout=open('/var/log/perfsonar/pslookup-backward-compatibility-agent.log', 'w'),
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                    preexec_fn=(lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
+        
+continuous_pid = process.pid
+logger.info("process started with pid {}".format(continuous_pid))
 
 
 # Acquire a tracer

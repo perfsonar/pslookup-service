@@ -65,9 +65,11 @@ class ServiceElasticSearch:
             # Create the destination index if it does not exist already
             self.create_index()
 
-    def build_elastic_search_request(self, query_request, operator):
+    def build_elastic_search_request(self, query_request, operators):
 
         search_request = {}
+
+        operator = operators.get_map().get("operator")
         
         if operator.lower() == "all":
             logger.debug("Building elastic search request - ALL case")
@@ -86,6 +88,11 @@ class ServiceElasticSearch:
                     if "*" in value:
                         regex_string = self.process_wild_card_pattern(value)
                         search_request['query']['bool']['must'].append({"regexp":{key_as_string: regex_string}})
+                    # Time based query
+                    elif operators.get_map().get(key_as_string).lower() == "greater":
+                        search_request['query']['bool']['must'].append({"range":{key_as_string: {"gt": value}}})
+                    elif operators.get_map().get(key_as_string).lower() == "exists":
+                        search_request['query']['bool']['must'].append({"exists":{"field":key_as_string}})
                     else:
                         search_request['query']['bool']['must'].append({"match":{key_as_string: value}})
                 elif type(value) is list:
@@ -158,9 +165,8 @@ class ServiceElasticSearch:
         Number of hits
         '''
 
-        operator = operators.get_map().get("operator")
         
-        search_request = self.build_elastic_search_request(query_request.get_map(), operator)
+        search_request = self.build_elastic_search_request(query_request.get_map(), operators)
 
         response = ServiceElasticSearch.esclient.search(
             index=os.environ['ELASTIC_V1_INDEX'],
