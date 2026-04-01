@@ -6,7 +6,8 @@ import requests
 import logging
 import time
 logger = logging.getLogger(__name__)
-
+file_handler = logging.FileHandler('var/log/perfsonar/pslookup-backward-compatibility-agent.log')
+logger.addHandler(file_handler)
 
 def interface_builder(interface_record):
     new_interface_record = {}
