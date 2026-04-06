@@ -24,7 +24,13 @@ def map_dbspec(record):
         
     record['ip_versions'] = list(ip_version)
     record['@timestamp'] = datetime.now(timezone.utc)
-    record['expires'] = record['@timestamp'] + timedelta(hours=24)
+    if record.get('meta', {}).get('expires'):
+        try:
+            record['expires'] = record.get('meta', {}).get('expires')
+        except Exception as e:
+            record['expires'] = record['@timestamp'] + timedelta(hours=24)
+    else:
+        record['expires'] = record['@timestamp'] + timedelta(hours=24)
 
     return record
 

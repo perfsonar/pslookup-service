@@ -348,7 +348,7 @@ def build_register():
     try:
         num_hits, host_records = db.query(query, operators)
     except Exception as e:
-        logger.error("Error querying service record type {}".format(str(query.get_map())))
+        print("Error querying service record type {}".format(str(query.get_map())))
         raise Exception(e)
     
     # For each service record build the entire lookup record matching the new mapping
@@ -443,7 +443,7 @@ def build_register():
 
                 register_response = requests.post('http://ls.perfsonar.net/record/', json=built_record)
                 
-                logger.info("Register record response: {}".format(register_response.json()))
+                print("Register record response: {}".format(register_response.json()))
 
 
 if __name__ == "__main__":
