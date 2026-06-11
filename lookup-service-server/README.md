@@ -26,6 +26,14 @@ The following environment variables are needed for the database connection.
         6. OS_INDEX
 ```
 
+**v1 Backward Compatibility Agent**
+
+The server runs a background agent that migrates v1 format records into the v2 index. The following environment variables configure it.
+```
+        1. ELASTIC_V1_INDEX - Elasticsearch index name for v1 records
+        2. LOOKUP_SERVER_URL - URL of the v2 record endpoint to forward converted records to (default: http://ls.perfsonar.net/record/)
+```
+
 # Note for Developers:
 
 1. To modify Schema for record validation

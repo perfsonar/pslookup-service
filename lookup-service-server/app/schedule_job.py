@@ -5,8 +5,10 @@ from backward_compatibility.reserved_values import ReservedValues
 import requests
 import logging
 import time
+import os
 logger = logging.getLogger(__name__)
-file_handler = logging.FileHandler('/var/log/perfsonar/pslookup-backward-compatibility-agent.log')
+log_dir = os.environ.get('V1_LOG_DIR', '/var/log/perfsonar')
+file_handler = logging.FileHandler(os.path.join(log_dir, 'pslookup-backward-compatibility-agent.log'))
 logger.addHandler(file_handler)
 
 def interface_builder(interface_record):
@@ -441,7 +443,7 @@ def build_register():
 
                 # Make a call to new server with the built record
 
-                register_response = requests.post('http://ls.perfsonar.net/record/', json=built_record)
+                register_response = requests.post(os.environ.get('LOOKUP_SERVER_URL', 'http://ls.perfsonar.net/record/'), json=built_record)
                 
                 print("Register record response: {}".format(register_response.json()))
 
