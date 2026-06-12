@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from ..validate_record import RecordValidation
 import logging
 from ..backward_compatibility.json_register_request import JsonRegisterRequest
 from ..backward_compatibility.lookup_service import LookupService
@@ -11,7 +10,6 @@ from ..backward_compatibility.database.service_elastic_search import ServiceElas
 from ..backward_compatibility.lease_manager import request_lease
 
 router = APIRouter()
-validation = RecordValidation()
 logger = logging.getLogger(__name__)
 
 @router.post("/{lookup}/records")

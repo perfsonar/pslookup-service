@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Request, HTTPException
 from ..validate_record import RecordValidation
 from ..database import map_dbspec, post_to_elastic, post_to_opensearch
 import os
@@ -7,7 +7,7 @@ router = APIRouter()
 validation = RecordValidation()
 
 @router.post("/record/")
-def register_record(request: Request, response: Response, registration_record: dict):
+def register_record(request: Request, registration_record: dict):
 
     registration_record = validation.validate_record(registration_record)
 
@@ -21,5 +21,7 @@ def register_record(request: Request, response: Response, registration_record: d
         response = post_to_elastic(registration_record)
     elif str(os.environ.get('DATABASE')).startswith('opensearch'):
         response = post_to_opensearch(registration_record)
+    else:
+        raise HTTPException(status_code=500, detail="DATABASE environment variable not configured. Must be 'elasticsearch' or 'opensearch'.")
 
     return response

@@ -164,7 +164,7 @@ def host_builder(host_record):
 
 
     # return the host record, interfaces and admin details to continue record construction
-    return new_host_record, host_record.get('host-net-interfaces'), host_record.get('host-administrators')
+    return new_host_record, host_record.get('host-net-interfaces', []), host_record.get('host-administrators', [])
 
 
 def admin_builder(admin_record):
@@ -350,7 +350,7 @@ def build_register():
     try:
         num_hits, host_records = db.query(query, operators)
     except Exception as e:
-        print("Error querying service record type {}".format(str(query.get_map())))
+        logger.error("Error querying service record type {}".format(str(query.get_map())))
         raise Exception(e)
     
     # For each service record build the entire lookup record matching the new mapping
@@ -444,8 +444,10 @@ def build_register():
                 # Make a call to new server with the built record
 
                 register_response = requests.post(os.environ.get('LOOKUP_SERVER_URL', 'http://ls.perfsonar.net/record/'), json=built_record)
-                
-                print("Register record response: {}".format(register_response.json()))
+                if register_response.ok:
+                    logger.info("Successfully registered record: {}".format(register_response.json()))
+                else:
+                    logger.error("Failed to register record: {} {}".format(register_response.status_code, register_response.text))
 
 
 if __name__ == "__main__":

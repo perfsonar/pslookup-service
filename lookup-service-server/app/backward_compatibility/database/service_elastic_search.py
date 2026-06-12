@@ -242,7 +242,7 @@ class ServiceElasticSearch:
     def remove_ls_added_fields(self, record_map):
         if record_map:
             message_map = copy.deepcopy(record_map)
-            if 'id' in message_map:
+            if '_id' in message_map:
                 del message_map['_id']
             if '_lastUpdated' in message_map:
                 del message_map['_lastUpdated']
