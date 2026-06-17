@@ -344,7 +344,7 @@ def build_register():
     operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
     query.add("expires", "now")
     operators.add("host-net-interfaces", ReservedValues.RECORD_OPERATOR_EXISTS)
-    query.add('host-net-interfaces', None)
+    query.add('host-net-interfaces', 'exists')
 
     db = ServiceElasticSearch()
     try:

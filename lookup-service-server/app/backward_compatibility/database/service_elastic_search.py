@@ -94,7 +94,7 @@ class ServiceElasticSearch:
                     elif operators.get_map().get(key_as_string).lower() == "exists":
                         search_request['query']['bool']['must'].append({"exists":{"field":key_as_string}})
                     else:
-                        search_request['query']['bool']['must'].append({"match":{key_as_string: value}})
+                        search_request['query']['bool']['must'].append({"term":{key_as_string: value}})
                 elif type(value) is list:
                     logger.debug("Query values are list - ALL case")
                     for value_obj in value:
@@ -103,7 +103,7 @@ class ServiceElasticSearch:
                             regex_string = self.process_wild_card_pattern(str_val)
                             search_request['query']['bool']['must'].append({"regexp":{key_as_string: regex_string}})
                         else:
-                            search_request['query']['bool']['must'].append({"match":{key_as_string: str_val}})
+                            search_request['query']['bool']['must'].append({"term":{key_as_string: str_val}})
         
         else:
             
@@ -121,7 +121,7 @@ class ServiceElasticSearch:
                         regex_string = self.process_wild_card_pattern(value)
                         search_request['query']['bool']['should'].append({"regexp":{key_as_string: regex_string}})
                     else:
-                        search_request['query']['bool']['should'].append({"match":{key_as_string: value}})
+                        search_request['query']['bool']['should'].append({"term":{key_as_string: value}})
                 elif type(value) is list:
                     logger.debug("Query values are list - ALL case")
                     for value_obj in value:
@@ -130,9 +130,10 @@ class ServiceElasticSearch:
                             regex_string = self.process_wild_card_pattern(str_val)
                             search_request['query']['bool']['should'].append({"regexp":{key_as_string: regex_string}})
                         else:
-                            search_request['query']['bool']['should'].append({"match":{key_as_string: str_val}})
+                            search_request['query']['bool']['should'].append({"term":{key_as_string: str_val}})
 
         search_request['sort'] = [{"_lastUpdated":{"order": "desc"}}]
+        search_request['size'] = 10000
 
         logger.debug("Built record to search {}".format(search_request.__str__()))
 
