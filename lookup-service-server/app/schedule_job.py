@@ -7,8 +7,10 @@ import logging
 import time
 import os
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 log_dir = os.environ.get('V1_LOG_DIR', '/var/log/perfsonar')
 file_handler = logging.FileHandler(os.path.join(log_dir, 'pslookup-backward-compatibility-agent.log'))
+file_handler.setLevel(logging.INFO)
 logger.addHandler(file_handler)
 
 def interface_builder(interface_record):
