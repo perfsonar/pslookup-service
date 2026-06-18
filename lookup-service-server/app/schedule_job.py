@@ -17,42 +17,42 @@ def interface_builder(interface_record):
     new_interface_record = {}
 
     # Ignore the expires since they are defaulted to 1 day
-    if interface_record.get('interface-capacity', [None])[0]:
+    if interface_record.get('interface-capacity', [None])[0] is not None:
         try:
             new_interface_record['capacity'] = int(interface_record.get('interface-capacity', [None])[0])
         except (ValueError, TypeError):
-            pass
-    if interface_record.get('interface-name', [None])[0]:
+            new_interface_record.setdefault('meta', {})['capacity'] = interface_record.get('interface-capacity', [None])[0]
+    if interface_record.get('interface-name', [None])[0] is not None:
         new_interface_record['name'] = interface_record.get('interface-name', [None])[0]
 
-    if interface_record.get('interface-addresses'):
+    if interface_record.get('interface-addresses') is not None:
         new_interface_record['addresses'] = interface_record.get('interface-addresses', [None])
-    if interface_record.get('pscheduler-tests'):
+    if interface_record.get('pscheduler-tests') is not None:
         new_interface_record['pscheduler_tests'] = interface_record.get('pscheduler-tests', [None])
-    if interface_record.get('interface-mtu', [None])[0]:
+    if interface_record.get('interface-mtu', [None])[0] is not None:
         try:
             new_interface_record['mtu'] = int(interface_record.get('interface-mtu', [None])[0])
         except (ValueError, TypeError):
-            pass
-    if interface_record.get('interface-mac', [None])[0]:
+            new_interface_record.setdefault('meta', {})['mtu'] = interface_record.get('interface-mtu', [None])[0]
+    if interface_record.get('interface-mac', [None])[0] is not None:
         new_interface_record['mac'] = interface_record.get('interface-mac', [None])[0]
     # Add everything else to meta for debugging
     new_interface_record['meta'] = new_interface_record.get('meta', {})
-    if interface_record.get('expires', None):
-        new_interface_record['meta']['expires'] = interface_record.get('expires', None)
-    if interface_record.get('type', [None])[0]:
+    if interface_record.get('expires') is not None:
+        new_interface_record['meta']['expires'] = interface_record.get('expires')
+    if interface_record.get('type', [None])[0] is not None:
         new_interface_record['meta']['record_type'] = interface_record.get('type', [None])[0]
-    if interface_record.get('uri', None):
-        new_interface_record['meta']['record_uri'] = interface_record.get('uri', None)
-    if interface_record.get('ttl', [None])[0]:
+    if interface_record.get('uri') is not None:
+        new_interface_record['meta']['record_uri'] = interface_record.get('uri')
+    if interface_record.get('ttl', [None])[0] is not None:
         new_interface_record['meta']['record_ttl'] = interface_record.get('ttl', [None])[0]
-    if interface_record.get('client-uuid', [None])[0]:
+    if interface_record.get('client-uuid', [None])[0] is not None:
         new_interface_record['meta']['record_client_uuid'] = interface_record.get('client-uuid', [None])[0]
-    if interface_record.get('group-domains'):
+    if interface_record.get('group-domains') is not None:
         new_interface_record['meta']['record_group_domains'] = interface_record.get('group-domains', [None])
-    if interface_record.get('state', None):
-        new_interface_record['meta']['record_state'] = interface_record.get('state', None)
-    if interface_record.get('psinterface-type', [None])[0]:
+    if interface_record.get('state') is not None:
+        new_interface_record['meta']['record_state'] = interface_record.get('state')
+    if interface_record.get('psinterface-type', [None])[0] is not None:
         new_interface_record['meta']['record_interface_type'] = interface_record.get('psinterface-type', [None])[0]
 
     return new_interface_record
@@ -61,128 +61,125 @@ def interface_builder(interface_record):
 def host_builder(host_record):
     new_host_record = {}
 
-    if host_record.get('host-vm', [None])[0]:
+    if host_record.get('host-vm', [None])[0] is not None:
         try:
             new_host_record['vm'] = bool(int(host_record.get('host-vm')[0]))
         except (ValueError, TypeError):
-            pass
+            new_host_record.setdefault('meta', {})['vm'] = host_record.get('host-vm', [None])[0]
     
     # location
     new_host_record['location'] = new_host_record.get('location', {})
-    if host_record.get('location-state', [None])[0]:
+    if host_record.get('location-state', [None])[0] is not None:
         new_host_record['location']['state_province_region'] = host_record.get('location-state', [None])[0]
-    if host_record.get('location-city', [None])[0]:
+    if host_record.get('location-city', [None])[0] is not None:
         new_host_record['location']['city'] = host_record.get('location-city', [None])[0]
-    if host_record.get('location-code', [None])[0]:
+    if host_record.get('location-code', [None])[0] is not None:
         new_host_record['location']['zipcode/ postal code'] = host_record.get('location-code', [None])[0]
-    if host_record.get('location-country', [None])[0]:
+    if host_record.get('location-country', [None])[0] is not None:
         new_host_record['location']['country'] = host_record.get('location-country', [None])[0]
-    if host_record.get('location-latitude', [None])[0]:
+    if host_record.get('location-latitude', [None])[0] is not None:
         try:
             new_host_record['location']['latitude'] = float(host_record.get('location-latitude')[0])
         except (ValueError, TypeError):
-            pass
-    if host_record.get('location-longitude', [None])[0]:
+            new_host_record.setdefault('meta', {})['location-latitude'] = host_record.get('location-latitude', [None])[0]
+    if host_record.get('location-longitude', [None])[0] is not None:
         try:
             new_host_record['location']['longitude'] = float(host_record.get('location-longitude')[0])
         except (ValueError, TypeError):
-            pass
-    if host_record.get('location-sitename', [None])[0]:
+            new_host_record.setdefault('meta', {})['location-longitude'] = host_record.get('location-longitude', [None])[0]
+    if host_record.get('location-sitename', [None])[0] is not None:
         new_host_record['location']['sitename'] = host_record.get('location-sitename', [None])[0]
 
     # Meta
     new_host_record['meta'] = new_host_record.get('meta', {})
-    if host_record.get('expires', None):
-        new_host_record['meta']['expires'] = host_record.get('expires', None)
-    if host_record.get('pshost-install-method', [None])[0]:
+    if host_record.get('expires') is not None:
+        new_host_record['meta']['expires'] = host_record.get('expires')
+    if host_record.get('pshost-install-method', [None])[0] is not None:
         new_host_record['meta']['pshost_install_method'] = host_record.get('pshost-install-method', [None])[0]
-    if host_record.get('_lastUpdated', None):
-        new_host_record['meta']['_lastUpdated'] = host_record.get('_lastUpdated', None)
-    if host_record.get('type', [None])[0]:
+    if host_record.get('_lastUpdated') is not None:
+        new_host_record['meta']['_lastUpdated'] = host_record.get('_lastUpdated')
+    if host_record.get('type', [None])[0] is not None:
         new_host_record['meta']['record_type'] = host_record.get('type', [None])[0]
-    if host_record.get('state', None):
-        new_host_record['meta']['record_state'] = host_record.get('state', None)
-    if host_record.get('host-net-tcp-autotunemaxbuffer-send', [None])[0]:
+    if host_record.get('state') is not None:
+        new_host_record['meta']['record_state'] = host_record.get('state')
+    if host_record.get('host-net-tcp-autotunemaxbuffer-send', [None])[0] is not None:
         new_host_record['meta']['host_net_tcp_autotunemaxbuffer_send'] = host_record.get('host-net-tcp-autotunemaxbuffer-send', [None])[0]
-    if host_record.get('host-net-tcp-maxbuffer-recv', [None])[0]:
+    if host_record.get('host-net-tcp-maxbuffer-recv', [None])[0] is not None:
         new_host_record['meta']['host_net_tcp_maxbuffer_recv'] = host_record.get('host-net-tcp-maxbuffer-recv', [None])[0]
-    if host_record.get('host-hardware-cpuid', [None])[0]:
+    if host_record.get('host-hardware-cpuid', [None])[0] is not None:
         new_host_record['meta']['host_hardware_cpuid'] = host_record.get('host-hardware-cpuid', [None])[0]
-    if host_record.get('uri', None):
-        new_host_record['meta']['uri'] = host_record.get('uri', None)
-    if host_record.get('ttl', [None])[0]:
+    if host_record.get('uri') is not None:
+        new_host_record['meta']['uri'] = host_record.get('uri')
+    if host_record.get('ttl', [None])[0] is not None:
         new_host_record['meta']['ttl'] = host_record.get('ttl', [None])[0]
-    if host_record.get('host-net-tcp-autotunemaxbuffer-recv', [None])[0]:
+    if host_record.get('host-net-tcp-autotunemaxbuffer-recv', [None])[0] is not None:
         new_host_record['meta']['host_net_tcp_autotunemaxbuffer_recv'] = host_record.get('host-net-tcp-autotunemaxbuffer-recv', [None])[0]
-    if host_record.get('host-net-tcp-maxbuffer-send', [None])[0]:
+    if host_record.get('host-net-tcp-maxbuffer-send', [None])[0] is not None:
         new_host_record['meta']['host_net_tcp_maxbuffer_send'] = host_record.get('host-net-tcp-maxbuffer-send', [None])[0]
-    if host_record.get('host-net-ipv6-enabled', [None])[0]:
+    if host_record.get('host-net-ipv6-enabled', [None])[0] is not None:
         new_host_record['meta']['host_net_ipv6_enabled'] = host_record.get('host-net-ipv6-enabled', [None])[0]
     
     
     
-    if host_record.get('host-hardware-processorcore',[None])[0]:
-        try:
-            new_host_record['meta']['host_hardware_processorcore'] = int(host_record.get('host-hardware-processorcore')[0])
-        except (ValueError, TypeError):
-            pass
+    if host_record.get('host-hardware-processorcore', [None])[0] is not None:
+        new_host_record['meta']['host_hardware_processorcore'] = host_record.get('host-hardware-processorcore')[0]
     
-    if host_record.get('host-os-kernel', [None])[0]:
+    if host_record.get('host-os-kernel', [None])[0] is not None:
         new_host_record['os_kernel'] = host_record.get('host-os-kernel', [None])[0]
-    if host_record.get('host-os-name', [None])[0]:
+    if host_record.get('host-os-name', [None])[0] is not None:
         new_host_record['os_name'] = host_record.get('host-os-name', [None])[0]
-    if host_record.get('host-hardware-processorspeed'):
+    if host_record.get('host-hardware-processorspeed') is not None:
         new_host_record['processor_speed'] = host_record.get('host-hardware-processorspeed')
-    if host_record.get('host-os-version', [None])[0]:
+    if host_record.get('host-os-version', [None])[0] is not None:
         new_host_record['os_version'] = host_record.get('host-os-version', [None])[0]
-    if host_record.get('host-productname', [None])[0]:
+    if host_record.get('host-productname', [None])[0] is not None:
         new_host_record['product_name'] = host_record.get('host-productname', [None])[0]
-    if host_record.get('client-uuid', [None])[0]:
+    if host_record.get('client-uuid', [None])[0] is not None:
         new_host_record['client_uuid'] = host_record.get('client-uuid', [None])[0]
-    if host_record.get('pshost-access-policy', [None])[0]:
+    if host_record.get('pshost-access-policy', [None])[0] is not None:
         new_host_record['access_policy'] = host_record.get('pshost-access-policy', [None])[0]
-    if host_record.get('pshost-bundle', [None])[0]:
+    if host_record.get('pshost-bundle', [None])[0] is not None:
         new_host_record['perfsonar_bundle'] = host_record.get('pshost-bundle', [None])[0]
-    if host_record.get('pshost-bundle', [None])[0]:
+    if host_record.get('pshost-bundle', [None])[0] is not None:
         new_host_record['perfsonar_bundle'] = host_record.get('pshost-bundle', [None])[0]
-    
+
 
     # Bundle version in two places. Populate using one and place the other to meta
-    if host_record.get('pshost-bundle-version', [None])[0]:
+    if host_record.get('pshost-bundle-version', [None])[0] is not None:
         new_host_record['perfsonar_version'] = host_record.get('pshost-bundle-version')[0]
         # Add the other version from host_record to meta
-        if host_record.get('pshost-toolkitversion', [None])[0]:
+        if host_record.get('pshost-toolkitversion', [None])[0] is not None:
             new_host_record['meta']['pshost_toolkitversion'] = host_record.get('pshost-toolkitversion')[0]
-    elif host_record.get('pshost_toolkitversion', [None])[0]:
+    elif host_record.get('pshost_toolkitversion', [None])[0] is not None:
         new_host_record['perfsonar_version'] = host_record.get('pshost_toolkitversion')[0]
-    
-    if host_record.get('host-manufacturer', [None])[0]:
+
+    if host_record.get('host-manufacturer', [None])[0] is not None:
         new_host_record['manufacturer'] = host_record.get('host-manufacturer', [None])[0]
-    if host_record.get('host-hardware-processorcount', [None])[0]:
+    if host_record.get('host-hardware-processorcount', [None])[0] is not None:
         try:
             new_host_record['processor_core_count'] = int(host_record.get('host-hardware-processorcount', [None])[0])
         except (ValueError, TypeError):
-            pass
+            new_host_record.setdefault('meta', {})['processor_core_count'] = host_record.get('host-hardware-processorcount', [None])[0]
 
-    if host_record.get('host-net-tcp-congestionalgorithm', [None])[0]:
+    if host_record.get('host-net-tcp-congestionalgorithm', [None])[0] is not None:
         new_host_record['net_ipv4_tcp_congestion_control'] = host_record.get('host-net-tcp-congestionalgorithm', [None])[0]
-    if host_record.get('host-os-architecture', [None])[0]:
+    if host_record.get('host-os-architecture', [None])[0] is not None:
         new_host_record['os_architecture'] = host_record.get('host-os-architecture', [None])[0]
-    if host_record.get('host-name'):
+    if host_record.get('host-name') is not None:
         new_host_record['name'] = host_record.get('host-name', [None])
-    if host_record.get('group-domains'):
+    if host_record.get('group-domains') is not None:
         new_host_record['group_domains'] = host_record.get('group-domains', [None])
-    if host_record.get('host-hardware-memory', [None])[0]:
+    if host_record.get('host-hardware-memory', [None])[0] is not None:
         try:
             new_host_record['memory_bytes'] = int(host_record.get('host-hardware-memory', [None])[0])
         except Exception as e:
             # Push it to meta
             new_host_record['meta']['memory_bytes'] = host_record.get('host-hardware-memory', [None])[0]
-    if host_record.get('pshost-role', [None])[0]:
+    if host_record.get('pshost-role', [None])[0] is not None:
         new_host_record['role'] = host_record.get('pshost-role', [None])[0]
-    if host_record.get('group-communities'):
+    if host_record.get('group-communities') is not None:
         new_host_record['group_communities'] = host_record.get('group-communities', [None])
-    if host_record.get('pshost-access-notes', [None])[0]:
+    if host_record.get('pshost-access-notes', [None])[0] is not None:
         new_host_record['access_notes'] = host_record.get('pshost-access-notes', [None])[0]
 
 
@@ -193,58 +190,57 @@ def host_builder(host_record):
 def admin_builder(admin_record):
     new_admin_record = {}
 
-    if admin_record.get('person-emails'):
+    if admin_record.get('person-emails') is not None:
         new_admin_record['emails'] = admin_record.get('person-emails')
-    
+
     new_admin_record['meta'] = {}
 
-    if admin_record.get('location-city', [None])[0]:
+    if admin_record.get('location-city', [None])[0] is not None:
         new_admin_record['meta']['location_city'] = admin_record.get('location-city', [None])[0]
 
-    if admin_record.get('expires', None):
-        new_admin_record['meta']['expires'] = admin_record.get('expires', None)
+    if admin_record.get('expires') is not None:
+        new_admin_record['meta']['expires'] = admin_record.get('expires')
 
-    if admin_record.get('location-code', [None])[0]:
+    if admin_record.get('location-code', [None])[0] is not None:
         new_admin_record['meta']['location_code'] = admin_record.get('location-code', [None])[0]
 
+    if admin_record.get('_lastUpdated') is not None:
+        new_admin_record['meta']['_lastUpdated'] = admin_record.get('_lastUpdated')
 
-    if admin_record.get('_lastUpdated', None):
-        new_admin_record['meta']['_lastUpdated'] = admin_record.get('_lastUpdated', None)
-
-    if admin_record.get('person-organization', [None])[0]:
+    if admin_record.get('person-organization', [None])[0] is not None:
         new_admin_record['meta']['person_organization'] = admin_record.get('person-organization', [None])[0]
 
-    if admin_record.get('type', [None])[0]:
+    if admin_record.get('type', [None])[0] is not None:
         new_admin_record['meta']['record_type'] = admin_record.get('type', [None])[0]
 
-    if admin_record.get('uri', None):
-        new_admin_record['meta']['record_uri'] = admin_record.get('uri', None)
+    if admin_record.get('uri') is not None:
+        new_admin_record['meta']['record_uri'] = admin_record.get('uri')
 
-    if admin_record.get('ttl', [None])[0]:
+    if admin_record.get('ttl', [None])[0] is not None:
         new_admin_record['meta']['record_ttl'] = admin_record.get('ttl', [None])[0]
 
-    if admin_record.get('location-country', [None])[0]:
+    if admin_record.get('location-country', [None])[0] is not None:
         new_admin_record['meta']['location_country'] = admin_record.get('location-country', [None])[0]
 
-    if admin_record.get('location-latitude', [None])[0]:
+    if admin_record.get('location-latitude', [None])[0] is not None:
         new_admin_record['meta']['location_latitude'] = admin_record.get('location-latitude', [None])[0]
 
-    if admin_record.get('location-longitude', [None])[0]:
+    if admin_record.get('location-longitude', [None])[0] is not None:
         new_admin_record['meta']['location_longitude'] = admin_record.get('location-longitude', [None])[0]
 
-    if admin_record.get('client-uuid', [None])[0]:
+    if admin_record.get('client-uuid', [None])[0] is not None:
         new_admin_record['meta']['client_uuid'] = admin_record.get('client-uuid', [None])[0]
 
-    if admin_record.get('location-sitename', [None])[0]:
+    if admin_record.get('location-sitename', [None])[0] is not None:
         new_admin_record['meta']['location_sitename'] = admin_record.get('location-sitename', [None])[0]
 
-    if admin_record.get('state', None):
-        new_admin_record['meta']['state'] = admin_record.get('state', None)
+    if admin_record.get('state') is not None:
+        new_admin_record['meta']['state'] = admin_record.get('state')
 
-    if admin_record.get('person-name', [None])[0]:
+    if admin_record.get('person-name', [None])[0] is not None:
         new_admin_record['meta']['person_name'] = admin_record.get('person-name', [None])[0]
 
-    if admin_record.get('location-state', [None])[0]:
+    if admin_record.get('location-state', [None])[0] is not None:
         new_admin_record['meta']['location_state'] = admin_record.get('location-state', [None])[0]
 
     return new_admin_record
@@ -259,97 +255,96 @@ def service_builder(service_record):
     if (not service_type) or (not(service_type.lower() == "ma" or service_type.lower() == "pscheduler")):
         return None
     
-    if service_record.get('service-locator'):
+    if service_record.get('service-locator') is not None:
         new_service_record['urls'] = service_record.get('service-locator')
-    
-    if service_record.get('service-version', [None])[0]:
+
+    if service_record.get('service-version', [None])[0] is not None:
         new_service_record['version'] = service_record.get('service-version', [None])[0]
 
     if service_type.lower() == "ma":
-        if service_record.get('service-version', [None])[0]:
+        if service_record.get('service-version', [None])[0] is not None:
             new_service_record['archiver_type'] = service_record.get('service-version', [None])[0]
-        
 
     if service_type.lower() == "pscheduler":
 
-        if service_record.get('pscheduler-tools'):
+        if service_record.get('pscheduler-tools') is not None:
             new_service_record['tools'] = service_record.get('pscheduler-tools')
-        
-        if service_record.get('pscheduler-tests'):
+
+        if service_record.get('pscheduler-tests') is not None:
             new_service_record['tests'] = service_record.get('pscheduler-tests')
 
     new_service_record['meta'] = {}
 
-    if service_record.get('expires'):
+    if service_record.get('expires') is not None:
         new_service_record['meta']['expires'] = service_record.get('expires')
 
-    if service_record.get('service-type', [None])[0]:
+    if service_record.get('service-type', [None])[0] is not None:
         new_service_record['meta']['service_type'] = service_record.get('service-type', [None])[0]
 
-    if service_record.get('_lastUpdated'):
+    if service_record.get('_lastUpdated') is not None:
         new_service_record['meta']['_lastUpdated'] = service_record.get('_lastUpdated')
 
-    if service_record.get('type', [None])[0]:
+    if service_record.get('type', [None])[0] is not None:
         new_service_record['meta']['type'] = service_record.get('type', [None])[0]
 
-    if service_record.get('uri'):
+    if service_record.get('uri') is not None:
         new_service_record['meta']['uri'] = service_record.get('uri')
 
-    if service_record.get('ttl', [None])[0]:
+    if service_record.get('ttl', [None])[0] is not None:
         new_service_record['meta']['ttl'] = service_record.get('ttl', [None])[0]
 
-    if service_record.get('service-host', [None])[0]:
+    if service_record.get('service-host', [None])[0] is not None:
         new_service_record['meta']['service_host'] = service_record.get('service-host', [None])[0]
 
-    if service_record.get('service-name', [None])[0]:
+    if service_record.get('service-name', [None])[0] is not None:
         new_service_record['meta']['service_name'] = service_record.get('service-name', [None])[0]
 
-    if service_record.get('client-uuid', [None])[0]:
+    if service_record.get('client-uuid', [None])[0] is not None:
         new_service_record['meta']['client_uuid'] = service_record.get('client-uuid', [None])[0]
 
-    if service_record.get('group-domains'):
+    if service_record.get('group-domains') is not None:
         new_service_record['meta']['group_domains'] = service_record.get('group-domains')
 
-    if service_record.get('state', [None])[0]:
+    if service_record.get('state', [None])[0] is not None:
         new_service_record['meta']['state'] = service_record.get('state', [None])[0]
 
-    if service_record.get('service-administrators'):
+    if service_record.get('service-administrators') is not None:
         new_service_record['meta']['service_administrators'] = service_record.get('service-administrators')
 
-    if service_record.get('psservice-eventtypes'):
+    if service_record.get('psservice-eventtypes') is not None:
         new_service_record['meta']['psservice_eventtypes'] = service_record.get('psservice-eventtypes')
 
-    if service_record.get('location-country', [None])[0]:
+    if service_record.get('location-country', [None])[0] is not None:
         new_service_record['meta']['location_country'] = service_record.get('location-country', [None])[0]
 
-    if service_record.get('location-latitude', [None])[0]:
+    if service_record.get('location-latitude', [None])[0] is not None:
         new_service_record['meta']['location_latitude'] = service_record.get('location-latitude', [None])[0]
 
-    if service_record.get('location-longitude', [None])[0]:
+    if service_record.get('location-longitude', [None])[0] is not None:
         new_service_record['meta']['location_longitude'] = service_record.get('location-longitude', [None])[0]
 
-    if service_record.get('location-sitename', [None])[0]:
+    if service_record.get('location-sitename', [None])[0] is not None:
         new_service_record['meta']['location_sitename'] = service_record.get('location-sitename', [None])[0]
 
-    if service_record.get('location-state', [None])[0]:
+    if service_record.get('location-state', [None])[0] is not None:
         new_service_record['meta']['location_state'] = service_record.get('location-state', [None])[0]
 
-    if service_record.get('location-city', [None])[0]:
+    if service_record.get('location-city', [None])[0] is not None:
         new_service_record['meta']['location_city'] = service_record.get('location-city', [None])[0]
 
-    if service_record.get('location-code', [None])[0]:
+    if service_record.get('location-code', [None])[0] is not None:
         new_service_record['meta']['location_code'] = service_record.get('location-code', [None])[0]
 
-    if service_record.get('group-communities'):
+    if service_record.get('group-communities') is not None:
         new_service_record['meta']['group_communities'] = service_record.get('group-communities')
 
-    if service_record.get('bwctl-tools'):
+    if service_record.get('bwctl-tools') is not None:
         new_service_record['meta']['bwctl_tools'] = service_record.get('bwctl-tools')
 
-    if service_record.get('ma-type', [None])[0]:
+    if service_record.get('ma-type', [None])[0] is not None:
         new_service_record['meta']['ma_type'] = service_record.get('ma-type', [None])[0]
 
-    if service_record.get('ma-tests'):
+    if service_record.get('ma-tests') is not None:
         new_service_record['meta']['ma_tests'] = service_record.get('ma-tests')
 
     
