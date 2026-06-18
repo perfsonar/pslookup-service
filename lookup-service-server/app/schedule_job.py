@@ -18,7 +18,10 @@ def interface_builder(interface_record):
 
     # Ignore the expires since they are defaulted to 1 day
     if interface_record.get('interface-capacity', [None])[0]:
-        new_interface_record['capacity'] = int(interface_record.get('interface-capacity', [None])[0])
+        try:
+            new_interface_record['capacity'] = int(interface_record.get('interface-capacity', [None])[0])
+        except (ValueError, TypeError):
+            pass
     if interface_record.get('interface-name', [None])[0]:
         new_interface_record['name'] = interface_record.get('interface-name', [None])[0]
 
@@ -27,7 +30,10 @@ def interface_builder(interface_record):
     if interface_record.get('pscheduler-tests'):
         new_interface_record['pscheduler_tests'] = interface_record.get('pscheduler-tests', [None])
     if interface_record.get('interface-mtu', [None])[0]:
-        new_interface_record['mtu'] = int(interface_record.get('interface-mtu', [None])[0])
+        try:
+            new_interface_record['mtu'] = int(interface_record.get('interface-mtu', [None])[0])
+        except (ValueError, TypeError):
+            pass
     if interface_record.get('interface-mac', [None])[0]:
         new_interface_record['mac'] = interface_record.get('interface-mac', [None])[0]
     # Add everything else to meta for debugging
@@ -56,7 +62,10 @@ def host_builder(host_record):
     new_host_record = {}
 
     if host_record.get('host-vm', [None])[0]:
-        new_host_record['vm'] = bool(int(host_record.get('host-vm')[0]))
+        try:
+            new_host_record['vm'] = bool(int(host_record.get('host-vm')[0]))
+        except (ValueError, TypeError):
+            pass
     
     # location
     new_host_record['location'] = new_host_record.get('location', {})
@@ -69,9 +78,15 @@ def host_builder(host_record):
     if host_record.get('location-country', [None])[0]:
         new_host_record['location']['country'] = host_record.get('location-country', [None])[0]
     if host_record.get('location-latitude', [None])[0]:
-        new_host_record['location']['latitude'] = float(host_record.get('location-latitude')[0])
+        try:
+            new_host_record['location']['latitude'] = float(host_record.get('location-latitude')[0])
+        except (ValueError, TypeError):
+            pass
     if host_record.get('location-longitude', [None])[0]:
-        new_host_record['location']['longitude'] = float(host_record.get('location-longitude')[0])
+        try:
+            new_host_record['location']['longitude'] = float(host_record.get('location-longitude')[0])
+        except (ValueError, TypeError):
+            pass
     if host_record.get('location-sitename', [None])[0]:
         new_host_record['location']['sitename'] = host_record.get('location-sitename', [None])[0]
 
@@ -107,7 +122,10 @@ def host_builder(host_record):
     
     
     if host_record.get('host-hardware-processorcore',[None])[0]:
-        new_host_record['meta']['host_hardware_processorcore'] = int(host_record.get('host-hardware-processorcore')[0])
+        try:
+            new_host_record['meta']['host_hardware_processorcore'] = int(host_record.get('host-hardware-processorcore')[0])
+        except (ValueError, TypeError):
+            pass
     
     if host_record.get('host-os-kernel', [None])[0]:
         new_host_record['os_kernel'] = host_record.get('host-os-kernel', [None])[0]
@@ -141,7 +159,10 @@ def host_builder(host_record):
     if host_record.get('host-manufacturer', [None])[0]:
         new_host_record['manufacturer'] = host_record.get('host-manufacturer', [None])[0]
     if host_record.get('host-hardware-processorcount', [None])[0]:
-        new_host_record['processor_core_count'] = int(host_record.get('host-hardware-processorcount', [None])[0])
+        try:
+            new_host_record['processor_core_count'] = int(host_record.get('host-hardware-processorcount', [None])[0])
+        except (ValueError, TypeError):
+            pass
 
     if host_record.get('host-net-tcp-congestionalgorithm', [None])[0]:
         new_host_record['net_ipv4_tcp_congestion_control'] = host_record.get('host-net-tcp-congestionalgorithm', [None])[0]
@@ -444,16 +465,25 @@ def build_register():
                 built_record["host"] = host_part_record
 
                 # Make a call to new server with the built record
-
-                register_response = requests.post(os.environ.get('LOOKUP_SERVER_URL', 'http://ls.perfsonar.net/record/'), json=built_record)
-                if register_response.ok:
-                    logger.info("Successfully registered record: {}".format(register_response.json()))
-                else:
-                    logger.error("Failed to register record: {} {}".format(register_response.status_code, register_response.text))
+                url = os.environ.get('LOOKUP_SERVER_URL', 'http://ls.perfsonar.net/record/')
+                for attempt in range(3):
+                    try:
+                        register_response = requests.post(url, json=built_record, timeout=30)
+                        if register_response.ok:
+                            logger.info("Successfully registered record: {}".format(register_response.json()))
+                            break
+                        else:
+                            logger.error("Failed to register record (attempt {}): {} {}".format(attempt + 1, register_response.status_code, register_response.text))
+                    except requests.exceptions.RequestException as e:
+                        logger.error("Request error registering record (attempt {}): {}".format(attempt + 1, str(e)))
+                    if attempt < 2:
+                        # On failure it waits 1s, then 2s between attempts (backoff of 2^0, 2^1),
+                        # logs each failure with the attempt number, and stops retrying on success.
+                        time.sleep(2 ** attempt)
 
 
 if __name__ == "__main__":
     while True:
         build_register()
-        # Sleep for 5 minutes
-        time.sleep(300)
+        # Sleep for 8 minutes
+        time.sleep(480)
