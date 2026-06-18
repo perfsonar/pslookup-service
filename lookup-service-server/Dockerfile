@@ -15,6 +15,7 @@ RUN mkdir -p $V1_LOG_DIR
 # Upgrade packages
 RUN apt-get update --yes
 RUN apt-get upgrade --yes
+RUN apt-get install -y vim
 
 # Add service user and switch to user
 RUN useradd --create-home apiserviceuser && \
