@@ -33,8 +33,8 @@
                     "description": "processors speed in Hz",
                     "type": "array",
                     "items": {
-                            "type": "string"
-                        }
+                        "type": "string"
+                    }
                 },
                 "os_version": {
                     "description": "OS version",
@@ -82,14 +82,14 @@
                 "net_ipv4_tcp_available_congestion_control": {
                     "description": "Available TCP congestion control algorithms",
                     "type": "array",
-                    "items":{
+                    "items": {
                         "type": "string"
                     }
                 },
                 "net_ipv4_tcp_allowed_congestion_control": {
                     "description": "Allowed TCP congestion control algorithms",
                     "type": "array",
-                    "items":{
+                    "items": {
                         "type": "string"
                     }
                 },
@@ -234,7 +234,8 @@
                         "exchange-point",
                         "test-host",
                         "default-path",
-                        "backup-path"
+                        "backup-path",
+                        "public"
                     ]
                 },
                 "access_policy": {
@@ -342,7 +343,9 @@
                     "type": "string"
                 }
             },
-            "required": ["archiver_type"],
+            "required": [
+                "archiver_type"
+            ],
             "allOf": [
                 {
                     "$ref": "#/$definitions/service"
