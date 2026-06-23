@@ -520,8 +520,8 @@ def build_register():
     logger.info("Querying for hosts")
     operators.add("type", ReservedValues.RECORD_OPERATOR_ALL)
     query.add("type", "host")
-    #operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
-    #query.add("expires", "now")
+    operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
+    query.add("expires", "now")
     operators.add("host-net-interfaces", ReservedValues.RECORD_OPERATOR_EXISTS)
     query.add('host-net-interfaces', 'exists')
 
@@ -547,8 +547,8 @@ def build_register():
 
             operators.add("type", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("type", "person")
-            #operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
-            #query.add("expires", "now")
+            operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
+            query.add("expires", "now")
             operators.add("uri", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("uri", admin_uri)
 
@@ -572,8 +572,8 @@ def build_register():
 
             operators.add("type", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("type", "service")
-            #operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
-            #query.add("expires", "now")
+            operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
+            query.add("expires", "now")
             operators.add("service-host", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("service-host", host_uri)
 
@@ -609,8 +609,8 @@ def build_register():
 
             operators.add("type", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("type", "interface")
-            #operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
-            #query.add("expires", "now")
+            operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
+            query.add("expires", "now")
             operators.add("uri", ReservedValues.RECORD_OPERATOR_ALL)
             query.add("uri", interface_uri)
 
