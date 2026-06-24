@@ -574,8 +574,8 @@ def build_register():
             query.add("type", "service")
             operators.add("expires", ReservedValues.RECORD_OPERATOR_GREATER_THAN)
             query.add("expires", "now")
-            operators.add("service-host", ReservedValues.RECORD_OPERATOR_ALL)
-            query.add("service-host", host_uri)
+            operators.add("service-host.keyword", ReservedValues.RECORD_OPERATOR_ALL)
+            query.add("service-host.keyword", host_uri)
 
             num_hits, service_records = db.query(query, operators)
 
