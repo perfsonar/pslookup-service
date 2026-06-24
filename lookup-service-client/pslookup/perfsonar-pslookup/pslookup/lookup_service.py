@@ -1,0 +1,778 @@
+import json
+import urllib.request
+import re
+import copy
+from .validate_record import RecordValidation
+import uuid
+import random
+import os
+import requests
+import logging
+import sys
+import ssl
+import json
+import socket
+
+#Set logger
+logger = logging.getLogger("TransactionLogger")
+#logging.basicConfig(level=logging.DEBUG,
+#                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+#                    handlers=[
+#                        logging.StreamHandler()
+#                    ])
+
+# Read default host
+def get_default_host_details(default_host_path):
+    default_host = {}
+    try:
+        with open(default_host_path) as host_info:
+            default_host = json.load(host_info)
+    except Exception as e:
+        logger.info('Error reading the default host Info: {}'.format(e))
+    return default_host
+
+# Read default interface
+def get_default_interface_details(default_interface_path):
+    default_interfaces = []
+    try:
+        with open(default_interface_path) as interface_info:
+            default_interfaces = json.load(interface_info)
+    except Exception as e:
+        logger.info('Error reading the default interface Info: {}'.format(e))
+    return default_interfaces
+
+def build_record(conf, default_host_path, default_interface_path):
+
+    default_host = get_default_host_details(default_host_path)
+    default_interfaces = get_default_interface_details(default_interface_path)
+
+    #Node_metrics url
+    try:
+        node_exporter_url = conf.get('auto_discover', 'node_exporter_url')
+    except Exception as e:
+        logger.error('Specify node_exporter_url: {}'.format(e))
+        sys.exit('node_exporter_url not accessed from config: {}'.format(e))
+
+    #perfsonar_host_exporter_url
+    try:
+        perfsonar_host_exporter_url = conf.get('auto_discover', 'perfsonar_host_exporter_url')
+    except Exception as e:
+        logger.error('Specify perfsonar_host_exporter_url: {}'.format(e))
+        sys.exit('perfsonar_host_exporter_url not accessed from config: {}'.format(e))
+
+    # Read node metrics
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    node_metrics = None
+    try:
+        node_metrics = urllib.request.urlopen(node_exporter_url, timeout=30, context=ctx).read().decode("utf-8")
+    except urllib.error.URLError as e:
+        logger.error('{} request error: {}'.format(node_exporter_url, e))
+    except Exception as e:
+        logger.error('{} request error: {}'.format(node_exporter_url, e))
+    
+    perfsonar_metrics = None
+    try:
+        perfsonar_metrics = urllib.request.urlopen(perfsonar_host_exporter_url, timeout=30, context=ctx).read().decode("utf-8")
+    except urllib.error.URLError as e:
+        logger.info('perfsonar host metrics not accessed: {}'.format(e))
+    except socket.timeout as e:
+        logger.info('Time out: perfsonar host metrics not accessed: {}'.format(e))
+    except Exception as e:
+        logger.info('perfsonar host metrics not accessed: {}'.format(e))
+
+    # Makes name mandatory
+    interfaces = {}
+
+    # If node metrics are read successfully. Else use the defaults from supplied conf.
+    if node_metrics:
+        #Get the interface details
+        address_lines_re = re.compile(r'node_network_address_info{.*'+'address.*')
+        address_lines = address_lines_re.findall(node_metrics)
+
+        #Get the address details from each line
+        for address_line in address_lines:
+            address_line_device_re = re.compile('node_network_address_info{.*'+'device="(.*?)"')
+            device = address_line_device_re.findall(address_line)
+
+            if device:
+                try:
+                    name = device[-1]
+
+                # If no device details, ignore the issue and proceed
+                except Exception as e:
+                    logger.info("Device name not found for adress line {}".format(address_line))
+                    pass
+            
+            # Ignore if no device name!
+            if name:
+                address_re = re.compile('node_network_address_info{(.*)address="(.*?)"')
+                address = address_re.match(address_line)
+                try:
+                    address = address.groups()[-1]
+                except Exception as e:
+                    #Log address not extracted, Ignore record and proceed to next address
+                    logger.info('Address not found for address line {}, skipping'.format(address_line))
+                    continue
+
+                scope_re = re.compile('node_network_address_info{(.*)scope="(.*?)"')
+                scope = scope_re.match(address_line)
+                try:
+                    scope = scope.groups()[-1]
+                except Exception as e:
+                    # continue processing if scope not found.
+                    logger.info('scope not found for address line {}, Ignoring'.format(address_line))
+                    pass
+
+                # Ignore if link-local
+                if scope and (scope != 'link-local'):
+
+                    # Add the details to interface
+                    interfaces[name] = interfaces.get(name, {'addresses': []})
+                    interfaces[name]['addresses'].append(address)
+
+                    # Get mtu if not already
+                    if not interfaces.get(name).get('mtu'):
+                        mtu_re = re.compile('node_network_mtu_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
+
+                        try:
+                            interfaces[name]['mtu'] = int(mtu_re.findall(node_metrics)[-1])
+                        except Exception as e:
+                            logger.info('mtu not found for address line {}, Ignoring'.format(address_line))
+                            pass
+                    
+                    # Get capacity if not already
+                    if not interfaces.get(name).get('capacity'):
+                        capacity_re = re.compile('node_network_speed_bytes{.*'+'device="{}"'.format(name)+'.*} (.*)')
+                        try:
+                            interfaces[name]['capacity'] = int(capacity_re.findall(node_metrics)[-1])
+                        except Exception as e:
+                            logger.info('capacity not found for address line {}, Ignoring'.format(address_line))
+                            pass
+
+                    # Add mac if not already
+                    if not interfaces.get(name).get('mac'):
+                        mac_re = re.compile('node_network_info{.*address="(.*?)"'+'.*device="{}"'.format(name))
+                        try:
+                            interfaces[name]['mac'] = mac_re.findall(node_metrics)[-1]
+                        except Exception as e:
+                            logger.info('mac not found for address line {}, Ignoring'.format(address_line))
+                            pass
+
+    # rewrite with Default interfaces
+    for default_interface in default_interfaces:
+
+        # Name mandatory!
+        if default_interface['name']:
+            interfaces[default_interface['name']] = interfaces.get(default_interface['name'], {})
+            if default_interface.get('capacity'):
+                interfaces[default_interface['name']]['capacity'] = default_interface['capacity']
+            if default_interface.get('addresses') and default_interface['addresses'][-1]:
+                interfaces[default_interface['name']]['addresses'] = default_interface['addresses']
+            # pscheduler_tests and meta
+            pscheduler_tests = default_interface.get('pscheduler_tests')
+            if pscheduler_tests:
+                interfaces[default_interface['name']]['pscheduler_tests'] = pscheduler_tests
+            meta = default_interface.get('meta')
+            if meta:
+                host['meta'] = meta
+            if default_interface.get('mtu'):
+                interfaces[default_interface['name']]['mtu'] = default_interface['mtu']
+            if default_interface.get('mac'):
+                interfaces[default_interface['name']]['mac'] = default_interface['mac'] 
+    
+    #Build Host record
+    host = {}
+
+    # Check if host is a vm
+    vm = default_host.get('host', {}).get('vm')
+    if vm:
+        host['vm'] = vm
+
+    # administrator
+    admns = default_host.get('host', {}).get('administrators')
+    if admns:
+        for admn in admns:
+            for email in admn.get('emails'):
+                if email:
+                    admin_info = {'emails': admn.get('emails')}
+                    if admn.get('meta'):
+                        admin_info['meta'] = admn.get('meta')
+                    host['administrators'] = host.get('administrators', [])
+                    host['administrators'].append(admin_info)
+                    break
+
+    #processor core count
+    processor_count = default_host.get('host', {}).get('processor_core_count')
+    if processor_count:
+        host['processor_core_count'] = processor_count
+    elif node_metrics:
+        processor_count_re = re.compile('node_softnet_cpu_collision_total{.*cpu=(.*)')
+        host['processor_core_count'] = len(processor_count_re.findall(node_metrics))
+
+    #OS kernel
+    os_kernel = default_host.get('host', {}).get('os_kernel')
+    if os_kernel:
+        host['os_kernel'] = os_kernel
+    elif node_metrics:
+        sysname_re = re.compile('node_uname_info{.*'+'(\{|,| )sysname="(.*?)"')
+        release_re = re.compile('node_uname_info{.*'+'(\{|,| )release="(.*?)"')
+        try:
+            sysname = sysname_re.findall(node_metrics)[-1][-1]
+            release = release_re.findall(node_metrics)[-1][-1]
+            host['os_kernel'] = sysname + ' ' + release
+        except Exception as e:
+            logger.info('Host OS kernel not found, Ignoring')
+            pass
+
+    # os name
+    os_name = default_host.get('host', {}).get('os_name')
+    if os_name:
+        host['os_name'] = os_name
+    elif node_metrics:
+        os_name_re = re.compile('node_os_info{.*'+'(\{|,| )name="(.*?)"')
+        try:
+            host['os_name'] = os_name_re.findall(node_metrics)[-1][-1]
+        except Exception as e:
+            logger.info('Host OS Name not found, Ignoring')
+            pass
+
+    # os version
+    os_version = default_host.get('host', {}).get('os_version')
+    if os_version:
+        host['os_version'] = os_version
+    elif node_metrics:
+        os_version_re = re.compile('node_os_info{.*'+'(\{|,| )version="(.*?)"')
+        try:
+            host['os_version'] = os_version_re.findall(node_metrics)[-1][-1]
+        except Exception as e:
+            logger.info('Host OS version not found, Ignoring')
+            pass
+
+    # processor speed - sorted by processor number
+    processor_speed = default_host.get('host', {}).get('processor_speed')
+    if processor_speed:
+        host['processor_speed'] = processor_speed
+    elif node_metrics:
+        speed_re = re.compile('node_cpu_frequency_max_hertz{.*cpu="(.*)')
+        speeds = speed_re.findall(node_metrics)
+        if speeds:
+            try:
+                cpu_speeds = {}
+                for speed in speeds:
+                    cpu, speed_hz = speed.split('"} ')
+                    cpu = int(cpu)
+                    cpu_speeds[cpu] = speed_hz
+
+                host['processor_speed'] = [x[1] for x in sorted(cpu_speeds.items())]
+            
+            except Exception as e:
+                logger.info('Host Processor Speed not found, Ignoring')
+                pass
+
+    # product name
+    product_name = default_host.get('host', {}).get('product_name')
+    if product_name:
+        host['product_name'] = product_name
+    elif node_metrics:
+        product_name_re = re.compile('node_dmi_info{.*product_name="(.*?)"')
+        try:
+            host['product_name'] = product_name_re.findall(node_metrics)[-1]
+        except Exception as e:
+            logger.info('Host Product name not found, Ignoring')
+            pass
+
+    #perfsonar_bundle
+    perfsonar_bundle = default_host.get('host', {}).get('perfsonar_bundle')
+    if perfsonar_bundle:
+        host['perfsonar_bundle'] = perfsonar_bundle
+    elif perfsonar_metrics:
+        perfsonar_bundle_type_re = re.compile('perfsonar_bundle{.*type="(.*?)"')
+        try:
+            host['perfsonar_bundle'] = perfsonar_bundle_type_re.findall(perfsonar_metrics)[-1]
+        except Exception as e:
+            logger.info('Perfsonar bundle type name not found, Ignoring')
+            pass
+
+    #perfsonar_version
+    perfsonar_version = default_host.get('host', {}).get('perfsonar_version')
+    if perfsonar_version:
+        host['perfsonar_version'] = perfsonar_version
+    elif perfsonar_metrics:
+        perfsonar_bundle_version_re = re.compile('perfsonar_bundle{.*version="(.*?)"')
+        try:
+            host['perfsonar_version'] = perfsonar_bundle_version_re.findall(perfsonar_metrics)[-1]
+        except Exception as e:
+            logger.info('Perfsonar Version not found, Ignoring')
+            pass
+
+    #net_core_rmem_max
+    net_core_rmem_max = default_host.get('host', {}).get('net_core_rmem_max')
+    if net_core_rmem_max:
+        host['net_core_rmem_max'] = net_core_rmem_max
+    elif node_metrics:
+        net_core_rmem_max_re = re.compile('node_sysctl_net_core_rmem_max (\d+.*)')
+        try:
+            host['net_core_rmem_max'] = float(net_core_rmem_max_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_core_rmem_max not found, Ignoring')
+            pass
+
+    #net_core_rmem_default
+    net_core_rmem_default = default_host.get('host', {}).get('net_core_rmem_default')
+    if net_core_rmem_default:
+        host['net_core_rmem_default'] = net_core_rmem_default
+    elif node_metrics:
+        net_core_rmem_default_re = re.compile('net_core_rmem_default (\d+.*)')
+        try:
+            host['net_core_rmem_default'] = float(net_core_rmem_default_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_core_rmem_default not found, Ignoring')
+            pass
+
+    #net_core_wmem_max
+    net_core_wmem_max = default_host.get('host', {}).get('net_core_wmem_max')
+    if net_core_wmem_max:
+        host['net_core_wmem_max'] = net_core_wmem_max
+    elif node_metrics:
+        net_core_wmem_max_re = re.compile('net_core_wmem_max (\d+.*)')
+        try:
+            host['net_core_wmem_max'] = float(net_core_wmem_max_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_core_wmem_max_re not found, Ignoring')
+            pass
+
+    #net_core_wmem_default
+    net_core_wmem_default = default_host.get('host', {}).get('net_core_wmem_default')
+    if net_core_wmem_default:
+        host['net_core_wmem_default'] = net_core_wmem_default
+    elif node_metrics:
+        net_core_wmem_default_re = re.compile('net_core_wmem_default (\d+.*)')
+        try:
+            host['net_core_wmem_default'] = float(net_core_wmem_default_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_core_wmem_default not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_rmem_default
+    net_ipv4_tcp_rmem_default = default_host.get('host', {}).get('net_ipv4_tcp_rmem_default')
+    if net_ipv4_tcp_rmem_default:
+        host['net_ipv4_tcp_rmem_default'] = net_ipv4_tcp_rmem_default
+    elif node_metrics:
+        net_ipv4_tcp_rmem_default_re = re.compile('net_ipv4_tcp_rmem_default (\d+.*)')
+        try:
+            host['net_ipv4_tcp_rmem_default'] = float(net_ipv4_tcp_rmem_default_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_rmem_default not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_rmem_max
+    net_ipv4_tcp_rmem_max = default_host.get('host', {}).get('net_ipv4_tcp_rmem_max')
+    if net_ipv4_tcp_rmem_max:
+        host['net_ipv4_tcp_rmem_max'] = net_ipv4_tcp_rmem_max
+    elif node_metrics:
+        net_ipv4_tcp_rmem_max_re = re.compile('net_ipv4_tcp_rmem_max (\d+.*)')
+        try:
+            host['net_ipv4_tcp_rmem_max'] = float(net_ipv4_tcp_rmem_max_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_rmem_max not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_rmem_min
+    net_ipv4_tcp_rmem_min = default_host.get('host', {}).get('net_ipv4_tcp_rmem_min')
+    if net_ipv4_tcp_rmem_min:
+        host['net_ipv4_tcp_rmem_min'] = net_ipv4_tcp_rmem_min
+    elif node_metrics:
+        net_ipv4_tcp_rmem_min_re = re.compile('net_ipv4_tcp_rmem_min (\d+.*)')
+        try:
+            host['net_ipv4_tcp_rmem_min'] = float(net_ipv4_tcp_rmem_min_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_rmem_min not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_wmem_default
+    net_ipv4_tcp_wmem_default = default_host.get('host', {}).get('net_ipv4_tcp_wmem_default')
+    if net_ipv4_tcp_wmem_default:
+        host['net_ipv4_tcp_wmem_default'] = net_ipv4_tcp_wmem_default
+    elif node_metrics:
+        net_ipv4_tcp_wmem_default_re = re.compile('net_ipv4_tcp_wmem_default (\d+.*)')
+        try:
+            host['net_ipv4_tcp_wmem_default'] = float(net_ipv4_tcp_wmem_default_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_wmem_default not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_wmem_max
+    net_ipv4_tcp_wmem_max = default_host.get('host', {}).get('net_ipv4_tcp_wmem_max')
+    if net_ipv4_tcp_wmem_max:
+        host['net_ipv4_tcp_wmem_max'] = net_ipv4_tcp_wmem_max
+    elif node_metrics:
+        net_ipv4_tcp_wmem_max_re = re.compile('net_ipv4_tcp_wmem_max (\d+.*)')
+        try:
+            host['net_ipv4_tcp_wmem_max'] = float(net_ipv4_tcp_wmem_max_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_wmem_max not found, Ignoring')
+            pass
+
+    #node_sysctl_net_ipv4_tcp_wmem_min
+    net_ipv4_tcp_wmem_min = default_host.get('host', {}).get('net_ipv4_tcp_wmem_min')
+    if net_ipv4_tcp_wmem_min:
+        host['net_ipv4_tcp_wmem_min'] = net_ipv4_tcp_wmem_min
+    elif node_metrics:
+        net_ipv4_tcp_wmem_min_re = re.compile('net_ipv4_tcp_wmem_min (\d+.*)')
+        try:
+            host['net_ipv4_tcp_wmem_min'] = float(net_ipv4_tcp_wmem_min_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_wmem_min not found, Ignoring')
+            pass
+
+    #net_ipv4_tcp_no_metrics_save
+    net_ipv4_tcp_no_metrics_save = default_host.get('host', {}).get('net_ipv4_tcp_no_metrics_save')
+    if net_ipv4_tcp_no_metrics_save:
+        host['net_ipv4_tcp_no_metrics_save'] = net_ipv4_tcp_no_metrics_save
+    elif node_metrics:
+        net_ipv4_tcp_no_metrics_save_re = re.compile('net_ipv4_tcp_no_metrics_save (\d+.*)')
+        try:
+            host['net_ipv4_tcp_no_metrics_save'] = bool(int(net_ipv4_tcp_no_metrics_save_re.findall(node_metrics)[-1]))
+        except Exception as e:
+            logger.info('net_ipv4_tcp_no_metrics_save not found, Ignoring')
+            pass
+
+
+    #node_sysctl_net_ipv4_tcp_mtu_probing
+    net_ipv4_tcp_mtu_probing = default_host.get('host', {}).get('net_ipv4_tcp_mtu_probing')
+    if net_ipv4_tcp_mtu_probing:
+        host['net_ipv4_tcp_mtu_probing'] = net_ipv4_tcp_mtu_probing
+    elif node_metrics:
+        net_ipv4_tcp_mtu_probing_re = re.compile('net_ipv4_tcp_mtu_probing (\d+.*)')
+        try:
+            host['net_ipv4_tcp_mtu_probing'] = int(net_ipv4_tcp_mtu_probing_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_tcp_mtu_probing not found, Ignoring')
+            pass
+
+    #net_core_default_qdisc
+    net_core_default_qdisc = default_host.get('host', {}).get('net_core_default_qdisc')
+    if net_core_default_qdisc:
+        host['net_core_default_qdisc'] = net_core_default_qdisc
+    elif node_metrics:
+        default_qdisc_line_re = re.compile('.*net.core.default_qdisc.*')
+        try:
+            default_qdisc_line = default_qdisc_line_re.findall(node_metrics)[-1]
+            qdisc_value_re = re.compile('.*value="(.*?)"')
+            host['net_core_default_qdisc'] = qdisc_value_re.findall(default_qdisc_line)[-1]
+        except Exception as e:
+            logger.info('net_core_default_qdisc not found, Ignoring')
+            pass
+
+    #net_ipv4_conf_all_arp_ignore
+    net_ipv4_conf_all_arp_ignore = default_host.get('host', {}).get('net_ipv4_conf_all_arp_ignore')
+    if net_ipv4_conf_all_arp_ignore:
+        host['net_ipv4_conf_all_arp_ignore'] = net_ipv4_conf_all_arp_ignore
+    elif node_metrics:
+        net_ipv4_conf_all_arp_ignore_re = re.compile('node_sysctl_net_ipv4_conf_all_arp_ignore (\d+.*)')
+        try:
+            host['net_ipv4_conf_all_arp_ignore'] = int(net_ipv4_conf_all_arp_ignore_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_conf_all_arp_ignore not found, Ignoring')
+            pass
+
+    #net_ipv4_conf_all_arp_announce
+    net_ipv4_conf_all_arp_announce = default_host.get('host', {}).get('net_ipv4_conf_all_arp_announce')
+    if net_ipv4_conf_all_arp_announce:
+        host['net_ipv4_conf_all_arp_announce'] = net_ipv4_conf_all_arp_announce
+    elif node_metrics:
+        net_ipv4_conf_all_arp_announce_re = re.compile('net_ipv4_conf_all_arp_announce (\d+.*)')
+        try:
+            host['net_ipv4_conf_all_arp_announce'] = int(net_ipv4_conf_all_arp_announce_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_ipv4_conf_all_arp_announce not found, Ignoring')
+            pass
+
+    #net_ipv4_conf_default_arp_filter
+    net_ipv4_conf_default_arp_filter = default_host.get('host', {}).get('net_ipv4_conf_default_arp_filter')
+    if net_ipv4_conf_default_arp_filter:
+        host['net_ipv4_conf_default_arp_filter'] = net_ipv4_conf_default_arp_filter
+    elif node_metrics:
+        net_ipv4_conf_default_arp_filter_re = re.compile('net_ipv4_conf_default_arp_filter (\d+.*)')
+        try:
+            host['net_ipv4_conf_default_arp_filter'] = bool(int(net_ipv4_conf_default_arp_filter_re.findall(node_metrics)[-1]))
+        except Exception as e:
+            logger.info('net_ipv4_conf_default_arp_filter not found, Ignoring')
+            pass
+
+    #net_ipv4_conf_all_arp_filter
+    net_ipv4_conf_all_arp_filter = default_host.get('host', {}).get('net_ipv4_conf_all_arp_filter')
+    if net_ipv4_conf_all_arp_filter:
+        host['net_ipv4_conf_all_arp_filter'] = net_ipv4_conf_all_arp_filter
+    elif node_metrics:
+        net_ipv4_conf_all_arp_filter_re = re.compile('net_ipv4_conf_all_arp_filter (\d+.*)')
+        try:
+            host['net_ipv4_conf_all_arp_filter'] = bool(int(net_ipv4_conf_all_arp_filter_re.findall(node_metrics)[-1]))
+        except Exception as e:
+            logger.info('net_ipv4_conf_all_arp_filter not found, Ignoring')
+            pass
+
+    #node_sysctl_net_core_netdev_max_backlog
+    net_core_netdev_max_backlog = default_host.get('host', {}).get('net_core_netdev_max_backlog')
+    if net_core_netdev_max_backlog:
+        host['net_core_netdev_max_backlog'] = net_core_netdev_max_backlog
+    elif node_metrics:
+        net_core_netdev_max_backlog_re = re.compile('node_sysctl_net_core_netdev_max_backlog (\d+.*)')
+        try:
+            host['net_core_netdev_max_backlog'] = int(net_core_netdev_max_backlog_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('net_core_netdev_max_backlog not found, Ignoring')
+            pass
+
+    # group_domains
+    group_domains = default_host.get('host', {}).get('group_domains')
+    if group_domains:
+        for domain in group_domains:
+            if domain is not None:
+                host['group_domains'] = group_domains
+                break
+
+    # memory bytes
+    memory_bytes = default_host.get('host', {}).get('memory_bytes')
+    if memory_bytes:
+        host['memory_bytes'] = memory_bytes
+    elif node_metrics:
+        memory_bytes_re = re.compile('node_memory_MemTotal_bytes (\d+.*)')
+        try:
+            host['memory_bytes'] = float(memory_bytes_re.findall(node_metrics)[-1])
+        except Exception as e:
+            logger.info('memory_bytes not found, Ignoring')
+            pass
+
+    # location
+    location = default_host.get('host', {}).get('location')
+    if location and any(location.values()):
+        host['location'] = location
+
+    # group_communities
+    group_communities = default_host.get('host', {}).get('group_communities')
+    if group_communities:
+        for community in group_communities:
+            if community is not None:
+                host['group_communities'] = group_communities
+                break
+
+    # role
+    role = default_host.get('host', {}).get('role')
+    if role:
+        host['role'] = role
+
+    # access_policy
+    access_policy = default_host.get('host', {}).get('access_policy')
+    if access_policy:
+        host['access_policy'] = access_policy
+
+    # access_notes
+    access_notes = default_host.get('host', {}).get('access_notes')
+    if access_notes:
+        host['access_notes'] = access_notes
+
+    # meta
+    meta = default_host.get('host', {}).get('meta')
+    if meta:
+        host['meta'] = meta
+
+    # manufacturer
+    manufacturer = default_host.get('host', {}).get('manufacturer')
+    if manufacturer:
+        host['manufacturer'] = manufacturer
+    elif node_metrics:
+        manufacturer_re = re.compile('node_dmi_info{.*system_vendor="(.*?)"')
+        try:
+            host['manufacturer'] = manufacturer_re.findall(node_metrics)[-1]
+        except Exception as e:
+            logger.info('Host manufacturer not found, Ignoring')
+            pass
+
+    #net_ipv4_tcp_congestion_control
+    net_ipv4_tcp_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_congestion_control')
+    if net_ipv4_tcp_congestion_control:
+        host['net_ipv4_tcp_congestion_control'] = net_ipv4_tcp_congestion_control
+    elif node_metrics:
+        net_ipv4_tcp_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_congestion_control.*')
+        try:
+            net_ipv4_tcp_congestion_control_line = net_ipv4_tcp_congestion_control_line_re.findall(node_metrics)[-1]
+            net_ipv4_tcp_congestion_control_re = re.compile('.*value="(.*?)"')
+            host['net_ipv4_tcp_congestion_control'] = net_ipv4_tcp_congestion_control_re.findall(net_ipv4_tcp_congestion_control_line)[-1]
+        except Exception as e:
+            logger.info('net_ipv4_tcp_congestion_control not found, Ignoring')
+            pass
+
+    #net_ipv4_tcp_available_congestion_control
+    net_ipv4_tcp_available_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_available_congestion_control')
+    if net_ipv4_tcp_available_congestion_control:
+        host['net_ipv4_tcp_available_congestion_control'] = net_ipv4_tcp_available_congestion_control
+    elif node_metrics:
+        net_ipv4_tcp_available_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_available_congestion_control.*')
+        try:
+            net_ipv4_tcp_available_congestion_control_lines = net_ipv4_tcp_available_congestion_control_line_re.findall(node_metrics)
+            net_ipv4_tcp_available_congestion_control = []
+            for available_control in net_ipv4_tcp_available_congestion_control_lines:
+                net_ipv4_tcp_available_congestion_control_re = re.compile('.*value="(.*?)"')
+                value = net_ipv4_tcp_available_congestion_control_re.findall(available_control)[-1]
+                net_ipv4_tcp_available_congestion_control.append(value)
+            if net_ipv4_tcp_available_congestion_control:
+                host['net_ipv4_tcp_available_congestion_control'] = net_ipv4_tcp_available_congestion_control
+        except Exception as e:
+            logger.info('net_ipv4_tcp_available_congestion_control not found, Ignoring')
+            pass
+
+    #net_ipv4_tcp_allowed_congestion_control
+    net_ipv4_tcp_allowed_congestion_control = default_host.get('host', {}).get('net_ipv4_tcp_allowed_congestion_control')
+    if net_ipv4_tcp_allowed_congestion_control:
+        host['net_ipv4_tcp_allowed_congestion_control'] = net_ipv4_tcp_allowed_congestion_control
+    elif node_metrics:
+        net_ipv4_tcp_allowed_congestion_control_line_re = re.compile('node_sysctl_info{.*net.ipv4.tcp_allowed_congestion_control.*')
+        try:
+            net_ipv4_tcp_allowed_congestion_control_lines = net_ipv4_tcp_allowed_congestion_control_line_re.findall(node_metrics)
+            net_ipv4_tcp_allowed_congestion_control = []
+            for available_control in net_ipv4_tcp_allowed_congestion_control_lines:
+                net_ipv4_tcp_allowed_congestion_control_re = re.compile('.*value="(.*?)"')
+                value = net_ipv4_tcp_allowed_congestion_control_re.findall(available_control)[-1]
+                net_ipv4_tcp_allowed_congestion_control.append(value)
+            if net_ipv4_tcp_allowed_congestion_control:
+                host['net_ipv4_tcp_allowed_congestion_control'] = net_ipv4_tcp_allowed_congestion_control
+        except Exception as e:
+            logger.info('net_ipv4_tcp_allowed_congestion_control not found, Ignoring')
+            pass
+
+    # os_architecture
+    os_architecture = default_host.get('host', {}).get('os_architecture')
+    if os_architecture:
+        host['os_architecture'] = os_architecture
+    elif node_metrics:
+        os_architecture_re = re.compile('node_uname_info{.*machine="(.*?)"')
+        try:
+            host['os_architecture'] = os_architecture_re.findall(node_metrics)[-1]
+        except Exception as e:
+            logger.info('os_architecture not found, Ignoring')
+            pass
+    
+    # pscheduler_service
+    pscheduler_service = default_host.get('host', {}).get('pscheduler_service')
+    pscheduler_service_required = [all(pscheduler_service.get('urls')), all(pscheduler_service.get('tools')), all(pscheduler_service.get('tests'))]
+    if pscheduler_service and all(pscheduler_service_required):
+        host['pscheduler_service'] = pscheduler_service
+    
+    # archive_service
+    archive_service = default_host.get('host', {}).get('archive_service')
+    archive_service_required = [all(archive_service.get('urls'))]
+    if archive_service and all(archive_service_required):
+        host['archive_service'] = archive_service
+
+    #Gather host name
+    host_name = None
+    host_name = default_host.get('host', {}).get('name')
+    #If the name is empty or contains only null
+    if ((not host_name) or (host_name and not host_name[-1])) and node_metrics:
+        node_name_re = re.compile('nodename="(.*?)"')
+        host_name = node_name_re.findall(node_metrics)
+
+    #Hostname needed for client_uuid.
+    if ((not host_name) or (host_name and not host_name[-1])):
+        logger.debug('Hostname not realized.')
+    else:
+        host['name'] = host_name
+
+    # Build the records to register
+    # ips to host name
+    records = []
+    for interface in interfaces:
+        host['name'] = host.get('name', []) + interfaces[interface]['addresses']
+        record = copy.deepcopy(interfaces[interface])
+        record['name'] = interface
+        record['host'] = host
+        records.append(record)
+
+    return records
+
+def build_uuid(record, persist_uuid_to_disk=True):
+    # build and check client_uuid
+    uuid_persist_file = '/var/lib/perfsonar/pslookup/client-uuid.txt'
+    existing_uuid = {}
+    try:
+        with open(uuid_persist_file, 'r') as file:
+            for line in file:
+                key, val = line.split('=')
+                existing_uuid[key] = val
+    except Exception as e:
+        logger.info('Error reading client UUID: {}'.format(e))
+
+    # Evaluate seed
+    logger.info('')
+    rd = random.Random()
+
+    # get seed
+    seed = int(str(existing_uuid.get('seed', rd.getrandbits(128))).strip())
+
+    # Generate UUID with seed
+    rd.seed(seed)
+    new_client_uuid = uuid.UUID(int=rd.getrandbits(128), version=4).hex
+
+    #Hostname needed for client_uuid.
+    host_name = record.get('host', {}).get('name', [])
+
+    if ((not host_name) or (host_name and not host_name[-1])):
+        logger.debug('Hostname not realized. Using UUID without hostname...')
+    else:
+        new_client_uuid += '-' + '-'.join(sorted(host_name))
+
+    if existing_uuid:
+        if existing_uuid.get('uuid', '').strip() != new_client_uuid:
+            logger.info("Possible host name change. Existing UUID {} did not match with Newly generated UUID {}".format(existing_uuid.get('uuid').strip(), new_client_uuid))
+    elif persist_uuid_to_disk:
+        os.makedirs(os.path.dirname(uuid_persist_file), exist_ok=True)
+        with open(uuid_persist_file, 'w') as file:
+            # persist new client_uuid
+            file.write('uuid='+new_client_uuid+'\n')
+            file.write('seed='+str(seed))
+
+    # persist new client_uuid
+    return new_client_uuid
+
+def register_record(conf, default_host_path, default_interface_path):
+
+    records = build_record(conf, default_host_path, default_interface_path)
+
+    if not records:
+        logger.warning("No records generated. Check configs.")
+        return
+    
+    host_client_uuid = build_uuid(records[-1])
+
+    # validation instance of record validation
+    validation = RecordValidation()
+    
+    # ips to host name
+    for record in records:
+
+        record['host'] = record.get('host', {})
+        # persist new client_uuid
+        record['host']['client_uuid'] = host_client_uuid
+
+        # validate record
+        registration_record = validation.validate_record(record)
+
+        if not registration_record['validated']:
+            logger.error("Error validating record {}: \n{}".format({record}, registration_record['error']))
+
+        else:
+            logger.info('Record validated')
+            server = ''
+            try:
+                server = conf.get('server_config', 'server')
+            except Exception as e:
+                logger.info('Error reading server information from config {}'.format(e))
+                logger.info('Defaulting to ls.perfsonar.net')
+            
+            if not server:
+                server = 'http://ls.perfsonar.net:80'
+            r = requests.post(server.strip('/') + '/record/', json=registration_record['record'])
+            logger.info("Posted to the server with response {}".format(r.text))

@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh $@
+
+# Standard make install not needed
+override_dh_auto_install:
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+
+override_dh_install:
+	make PYTHON-ROOTPATH=. PERFSONAR-CONFIGPATH=/etc/perfsonar/pslookup PERFSONAR-ROOTPATH=/usr/lib/perfsonar/pslookup PERFSONAR-DATAPATH=/var/lib/perfsonar/pslooup BINPATH=/usr/bin
+	dh_install

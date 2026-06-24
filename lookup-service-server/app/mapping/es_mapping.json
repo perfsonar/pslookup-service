@@ -1,0 +1,251 @@
+{
+    "dynamic_templates": [
+        {
+            "strings_as_text": {
+                "match_mapping_type": "string",
+                "mapping": {
+                    "type": "keyword"
+                }
+            }
+        }
+    ],
+    "numeric_detection": true,
+    "date_detection": false,
+    "properties": {
+        "@timestamp": {
+            "type": "date"
+        },
+        "expires": {
+            "type": "date"
+        },
+        "capacity": {
+            "type": "long"
+        },
+        "name": {
+            "type": "keyword"
+        },
+        "addresses": {
+            "type": "ip"
+        },
+        "ip_versions": {
+            "type": "integer"
+        },
+        "pscheduler_tests": {
+            "type": "keyword"
+        },
+        "mtu": {
+            "type": "integer"
+        },
+        "mac": {
+            "type": "keyword"
+        },
+        "meta": {
+            "type": "object"
+        },
+        "host": {
+            "type": "object",
+            "properties": {
+                "vm": {
+                    "type": "boolean"
+                },
+                "processor_core_count": {
+                    "type": "integer"
+                },
+                "os_kernel": {
+                    "type": "keyword"
+                },
+                "os_name": {
+                    "type": "keyword"
+                },
+                "processor_speed": {
+                    "type": "keyword"
+                },
+                "os_version": {
+                    "type": "version"
+                },
+                "productname": {
+                    "type": "keyword"
+                },
+                "client_uuid": {
+                    "type": "keyword"
+                },
+                "perfsonar_bundle": {
+                    "type": "keyword"
+                },
+                "net_core_rmem_max": {
+                    "type": "double"
+                },
+                "net_core_rmem_default": {
+                    "type": "double"
+                },
+                "net_core_wmem_max": {
+                    "type": "double"
+                },
+                "net_core_wmem_default": {
+                    "type": "double"
+                },
+                "manufacturer": {
+                    "type": "keyword"
+                },
+                "perfsonar_version": {
+                    "type": "version"
+                },
+                "net_ipv4_tcp_congestion_control": {
+                    "type": "keyword"
+                },
+                "net_ipv4_tcp_available_congestion_control":{
+                    "type": "keyword"
+                },
+                "net_ipv4_tcp_allowed_congestion_control":{
+                    "type": "keyword"
+                },
+                "os_architecture": {
+                    "type": "keyword"
+                },
+                "name": {
+                    "type": "keyword"
+                },
+                "net_ipv4_tcp_rmem_default": {
+                    "type": "double"
+                },
+                "net_ipv4_tcp_rmem_max":{
+                    "type": "double"
+                },
+                "net_ipv4_tcp_rmem_min":{
+                    "type": "double"
+                },
+                "net_ipv4_tcp_wmem_default": {
+                    "type": "double"
+                },
+                "net_ipv4_tcp_wmem_max": {
+                    "type": "double"
+                },
+                "net_ipv4_tcp_wmem_min": {
+                    "type": "double"
+                },
+                "net_ipv4_tcp_no_metrics_save":{
+                    "type": "boolean"
+                },
+                "net_ipv4_tcp_mtu_probing":{
+                    "type": "integer"
+                },
+                "net_core_default_qdisc":{
+                    "type": "text"
+                },
+                "net_ipv4_conf_all_arp_ignore":{
+                    "type": "integer"
+                },
+                "net_ipv4_conf_all_arp_announce":{
+                    "type": "integer"
+                },
+                "net_ipv4_conf_default_arp_filter":{
+                    "type": "boolean"
+                },
+                "net_ipv4_conf_all_arp_filter":{
+                    "type": "boolean"
+                },
+                "net_core_netdev_max_backlog":{
+                    "type": "long"
+                },
+                "group_domains": {
+                    "type": "keyword"
+                },
+                "memory_bytes": {
+                    "type": "text"
+                },
+                "location": {
+                    "type": "object",
+                    "properties": {
+                        "state_province_region": {
+                            "type": "keyword"
+                        },
+                        "city": {
+                            "type": "keyword"
+                        },
+                        "postal_code": {
+                            "type": "keyword"
+                        },
+                        "country": {
+                            "type": "keyword"
+                        },
+                        "coordinates": {
+                            "type": "geo_point"
+                        },
+                        "sitename": {
+                            "type": "keyword"
+                        }
+                    }
+                },
+                "group_communities": {
+                    "type": "keyword"
+                },
+                "role": {
+                    "type": "keyword"
+                },
+                "access_policy": {
+                    "type": "keyword"
+                },
+                "access_notes": {
+                    "type": "keyword"
+                },
+                "pscheduler_service": {
+                    "type": "object",
+                    "properties": {
+                        "urls": {
+                            "type": "keyword"
+                        },
+                        "version": {
+                            "type": "version"
+                        },
+                        "tools": {
+                            "type": "keyword"
+                        },
+                        "tests": {
+                            "type": "keyword"
+                        },
+                        "meta": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "archive_service": {
+                    "type": "object",
+                    "properties": {
+                        "urls": {
+                            "type": "keyword"
+                        },
+                        "write_urls": {
+                            "type": "keyword"
+                        },
+                        "version": {
+                            "type": "version"
+                        },
+                        "archiver_type": {
+                            "type": "keyword"
+                        },
+                        "write_type": {
+                            "type": "keyword"
+                        },
+                        "meta": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "administrators": {
+                    "type": "object",
+                    "properties": {
+                        "emails": {
+                            "type": "keyword"
+                        },
+                        "meta": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "meta": {
+                    "type": "object"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,54 @@
+class ReservedValues:
+   RECORD_VALUE_TYPE_SUBSCRIBE = "subscribe"
+   RECORD_VALUE_TYPE_PERSON = "person"
+   RECORD_VALUE_TYPE_SERVICE = "service"
+   RECORD_VALUE_TYPE_HOST = "host"
+   RECORD_VALUE_TYPE_INTERFACE = "interface"
+   RECORD_VALUE_TYPE_BOOTSTRAP = "bootstrap"
+   RECORD_VALUE_TYPE_PSMETADATA = "psmetadata"
+   
+   # record-state values
+   RECORD_VALUE_STATE_REGISTER = "registered"
+   RECORD_VALUE_STATE_RENEW = "renewed"
+   RECORD_VALUE_STATE_DELETE = "deleted"
+   RECORD_VALUE_STATE_EXPIRE = "expired"
+   
+   # operator values
+   RECORD_OPERATOR_ALL = "all"
+   RECORD_OPERATOR_LESS_THAN = "less"
+   RECORD_OPERATOR_GREATER_THAN = "greater"
+   RECORD_OPERATOR_EXISTS = "exists"
+   RECORD_OPERATOR_ANY = "any"
+   RECORD_OPERATOR_DEFAULT = RECORD_OPERATOR_ALL
+   
+
+   RECORD_VALUE_TYPE_ERROR = "error"
+   
+   # server keys
+   SERVER_STATUS_UNKNOWN = "unknown"
+   SERVER_STATUS_ALIVE = "alive"
+   SERVER_STATUS_UNREACHABLE = "unreachable"
+
+   CACHE_TYPE_REPLICATION = "replication"
+   CACHE_TYPE_ARCHIVE = "archive"
+
+   RECORD_VALUE_TYPE_KEY_VALUE_PAIR = "key-value-pair"
+
+   SERVICE_MODE_READONLY = "r"
+   SERVICE_MODE_READWRITE = "rw"
+   RECORD_SUBSCRIBER_QUEUE_STATE_NEW = "new"
+   RECORD_SUBSCRIBER_QUEUE_STATE_EXISTING = "existing"
+
+   RECORD_VALUE_UNDERSCORE = "_"
+   RECORD_VALUE_FORWARD_SLASH = "/"
+
+   RECORD_SUBSCRIBER_ENDPOINT_ELASTIC = "elastic"
+
+   # elastic search values
+   ELASTIC_ALIASES_ENDPOINT = "_aliases"
+
+   ELASTIC_WRITE_ALIAS_SUFFIX = "_write"
+   
+   # error messages
+   RECORD_BULKRENEW_EXPIRED_ERRORMESSAGE = "expired"
+   RECORD_BULKRENEW_NOTFOUND_ERRORMESSAGE = "notfound"
