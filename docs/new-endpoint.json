@@ -1,0 +1,61 @@
+{
+    "lookup": {
+        "mappings": {
+            "dynamic": "true",
+            "subobjects": true,
+            "dynamic_templates": [
+                {
+                    "strings_as_text": {
+                        "match_mapping_type": "string",
+                        "mapping": {
+                            "fields": {
+                                "keyword": {
+                                    "ignore_above": 256,
+                                    "type": "keyword"
+                                }
+                            },
+                            "type": "text"
+                        }
+                    }
+                }
+            ],
+            "date_detection": false,
+            "numeric_detection": false,
+            "properties": {
+                "_lastUpdated": {
+                    "type": "date"
+                },
+                "client-uuid": {
+                    "type": "keyword"
+                },
+                "expires": {
+                    "type": "date"
+                },
+                "host-name": {
+                    "type": "keyword"
+                },
+                "host-net-interfaces": {
+                    "type": "keyword"
+                },
+                "interface-addresses": {
+                    "type": "keyword"
+                },
+                "person-emails": {
+                    "type": "keyword"
+                },
+                "service-host": {
+                    "type": "keyword"
+                },
+                "state": {
+                    "type": "keyword"
+                },
+                "type": {
+                    "type": "keyword"
+                },
+                "uri": {
+                    "type": "keyword"
+                }
+            }
+        }
+    }
+}
